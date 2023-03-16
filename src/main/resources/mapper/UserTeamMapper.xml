@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yeyou.yeyoubackend.mapper.UserTeamMapper">
+
+    <resultMap id="BaseResultMap" type="com.yeyou.yeyoubackend.model.domain.UserTeam">
+            <id property="id" column="id" jdbcType="BIGINT"/>
+            <result property="userId" column="userId" jdbcType="BIGINT"/>
+            <result property="teamId" column="teamId" jdbcType="BIGINT"/>
+            <result property="joinTime" column="joinTime" jdbcType="TIMESTAMP"/>
+            <result property="createTime" column="createTime" jdbcType="TIMESTAMP"/>
+            <result property="updateTime" column="updateTime" jdbcType="TIMESTAMP"/>
+            <result property="isDelete" column="isDelete" jdbcType="TINYINT"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id,userId,teamId,
+        joinTime,createTime,updateTime,
+        isDelete
+    </sql>
+    <select id="getUserVoListByTeamId" resultType="com.yeyou.yeyoubackend.model.vo.UserVo">
+        SELECT user.id,user.username, user.userAccount, user.avatarurl, user.gender, user.phone, user.email,
+               user.userStatus, user.createTime, user.updatetime, user.userRole, user.userCode
+        FROM user_team ut LEFT JOIN user ON ut.userId=user.id
+        WHERE ut.teamId=#{teamId};
+    </select>
+
+
+</mapper>
