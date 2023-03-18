@@ -149,6 +149,17 @@ public class UserController {
         return ResultUtils.success(page);
     }
 
+    @GetMapping("/randomUser")
+    public BaseResponse<List<User>> randomUser(int num,HttpServletRequest request){
+        List<User> randomUser = userService.getRandomUser(num);
+        randomUser = randomUser.stream().map(userService::getSafetyUser).collect(Collectors.toList());
+//        Page<User> userPage = new Page<>();
+//        userPage.setRecords(randomUser);
+//        userPage.setTotal(randomUser.size());
+//        userPage.setCurrent(1);
+        return ResultUtils.success(randomUser);
+    }
+
     @PostMapping("/update")
     public BaseResponse<Integer> updateUser(@RequestBody User user,HttpServletRequest request){
         if(user==null){
@@ -171,4 +182,21 @@ public class UserController {
         User user = (User) userObj;
         return user != null && user.getUserRole() == ADMIN_ROLE;
     }
+
+    /**
+     * 获取最匹配的前n个用户
+     * @param num
+     * @param request
+     * @return
+     */
+    @GetMapping("/matchUsersByTags")
+    public BaseResponse<List<User>> matchUsers(long num,HttpServletRequest request){
+        if(num<0 ||num>20){
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+        }
+        User loginUser = userService.getLoginUser(request);
+        return ResultUtils.success(userService.mathUsers(num, loginUser));
+    }
+
+
 }

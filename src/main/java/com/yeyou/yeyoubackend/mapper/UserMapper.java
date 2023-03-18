@@ -4,6 +4,8 @@ import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.yeyou.yeyoubackend.model.domain.User;
 import org.apache.ibatis.annotations.Mapper;
 
+import java.util.List;
+
 /**
 * @author lhy
 * @description 针对表【user(用户)】的数据库操作Mapper
@@ -12,7 +14,7 @@ import org.apache.ibatis.annotations.Mapper;
 */
 @Mapper
 public interface UserMapper extends BaseMapper<User> {
-
+    List<User> getRandomUser(int num);
 }
 
 

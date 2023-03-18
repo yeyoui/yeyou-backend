@@ -83,4 +83,17 @@ public interface UserService extends IService<User> {
      * (系统内部调用)
      */
      boolean isAdmin(HttpServletRequest request);
+
+    /**
+     * 匹配相似用户
+     * @param num
+     * @param loginUser
+     * @return
+     */
+    List<User> mathUsers(long num, User loginUser);
+
+    /**
+     * 随机获取用户
+     */
+    List<User> getRandomUser(int num);
 }

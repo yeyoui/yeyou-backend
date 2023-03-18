@@ -10,9 +10,7 @@ import com.yeyou.yeyoubackend.model.domain.Team;
 import com.yeyou.yeyoubackend.model.domain.User;
 import com.yeyou.yeyoubackend.model.domain.UserTeam;
 import com.yeyou.yeyoubackend.model.dto.TeamQuery;
-import com.yeyou.yeyoubackend.model.request.JoinTeamRequest;
-import com.yeyou.yeyoubackend.model.request.TeamAddRequest;
-import com.yeyou.yeyoubackend.model.request.TeamUpdRequest;
+import com.yeyou.yeyoubackend.model.request.*;
 import com.yeyou.yeyoubackend.model.vo.TeamUserVo;
 import com.yeyou.yeyoubackend.service.TeamService;
 import com.yeyou.yeyoubackend.service.UserService;
@@ -23,8 +21,8 @@ import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
-import java.util.List;
-import java.util.Queue;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @RestController
 @Slf4j
@@ -48,14 +46,14 @@ public class TeamController {
         return ResultUtils.success(teamId);
     }
 
-    @PostMapping("/delete")
-    public BaseResponse<Boolean> deleteByTeamId(@RequestBody long teamId){
-        if(teamId<0) throw new BusinessException(ErrorCode.PARAMS_ERROR);
-        boolean result = teamService.removeById(teamId);
-        if(teamService.getById(teamId)==null) return ResultUtils.error(ErrorCode.PARAMS_ERROR,"不存在该ID");
-        if(!result) throw new BusinessException(ErrorCode.SYSTEM_ERROR);
-        return ResultUtils.success(true);
-    }
+//    @PostMapping("/delete")
+//    public BaseResponse<Boolean> deleteByTeamId(@RequestBody long teamId){
+//        if(teamId<0) throw new BusinessException(ErrorCode.PARAMS_ERROR);
+//        boolean result = teamService.removeById(teamId);
+//        if(teamService.getById(teamId)==null) return ResultUtils.error(ErrorCode.PARAMS_ERROR,"不存在该ID");
+//        if(!result) throw new BusinessException(ErrorCode.SYSTEM_ERROR);
+//        return ResultUtils.success(true);
+//    }
 
     @PostMapping("/update")
     public BaseResponse<Boolean> updateTeam(@RequestBody TeamUpdRequest teamUpdRequest,HttpServletRequest request){
@@ -66,9 +64,9 @@ public class TeamController {
         return ResultUtils.success(true);
     }
     @GetMapping("/get")
-    public BaseResponse<Team> getTeamById(long teamId){
-        if(teamId<0) throw new BusinessException(ErrorCode.PARAMS_ERROR);
-        Team team = teamService.getById(teamId);
+    public BaseResponse<Team> getTeamById(long id){
+        if(id<0) throw new BusinessException(ErrorCode.PARAMS_ERROR);
+        Team team = teamService.getById(id);
         if(team==null) throw new BusinessException(ErrorCode.NULL_ERROR);
         return ResultUtils.success(team);
     }
@@ -97,6 +95,12 @@ public class TeamController {
         return ResultUtils.success(teamPages);
     }
 
+    /**
+     * 加入队伍
+     * @param joinTeamRequest
+     * @param request
+     * @return
+     */
     @PostMapping("/join")
     public BaseResponse<Boolean> joinTeam(@RequestBody JoinTeamRequest joinTeamRequest,HttpServletRequest request){
         if(joinTeamRequest==null) throw new BusinessException(ErrorCode.PARAMS_ERROR);
@@ -104,4 +108,75 @@ public class TeamController {
         boolean result = teamService.joinTeam(joinTeamRequest, loginUser);
         return ResultUtils.success(result);
     }
+
+    /**
+     * 退出队伍
+     * @param teamQuitRequest
+     * @param request
+     * @return
+     */
+    @PostMapping("/quit")
+    public BaseResponse<Boolean> quitTeam(@RequestBody TeamQuitRequest teamQuitRequest,HttpServletRequest request){
+        if(teamQuitRequest==null) throw new BusinessException(ErrorCode.PARAMS_ERROR);
+        User loginUser = userService.getLoginUser(request);
+        boolean result = teamService.quitTeam(teamQuitRequest, loginUser);
+        return ResultUtils.success(result);
+    }
+
+    /**
+     * 删除队伍
+     * @param teamDelRequest
+     * @param request
+     * @return
+     */
+    @PostMapping("/delete")
+    public BaseResponse<Boolean> deleteTeam(@RequestBody TeamDelRequest teamDelRequest, HttpServletRequest request) {
+        if (teamDelRequest == null || teamDelRequest.getTeamId() <= 0) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+        }
+        long teamId = teamDelRequest.getTeamId();
+        User loginUser = userService.getLoginUser(request);
+        boolean result = teamService.userDeleteTeam(teamId, loginUser);
+        if (!result) {
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "删除失败");
+        }
+        return ResultUtils.success(true);
+    }
+
+    /**
+     * 查询用户自己创建的队伍
+     * @param teamQuery
+     * @param request
+     * @return
+     */
+    @GetMapping("/list/my/create")
+    public BaseResponse<List<TeamUserVo>> listMyCreateTeams(TeamQuery teamQuery,HttpServletRequest request){
+        if(teamQuery==null) throw new BusinessException(ErrorCode.PARAMS_ERROR);
+        Long userID = userService.getLoginUser(request).getId();
+        teamQuery.setUserId(userID);
+        List<TeamUserVo> teamUserVos = teamService.listTeams(teamQuery, true);
+        return ResultUtils.success(teamUserVos);
+    }
+
+    /**
+     * 查询用户自己创建的队伍
+     * @param teamQuery
+     * @param request
+     * @return
+     */
+    @GetMapping("/list/my/join")
+    public BaseResponse<List<TeamUserVo>> listMyJoinTeams(TeamQuery teamQuery,HttpServletRequest request){
+        if(teamQuery==null) throw new BusinessException(ErrorCode.PARAMS_ERROR);
+        Long userID = userService.getLoginUser(request).getId();
+        //查询用户加入的队伍id
+        QueryWrapper<UserTeam> userTeamQueryWrapper = new QueryWrapper<>();
+        userTeamQueryWrapper.eq("userId", userID);
+        List<UserTeam> userTeams = userTeamService.list(userTeamQueryWrapper);
+        Map<Long, List<UserTeam>> userTeamCollect = userTeams.stream().collect(Collectors.groupingBy(UserTeam::getTeamId));
+        ArrayList<Long> ids = new ArrayList<>(userTeamCollect.keySet());
+        teamQuery.setIdList(ids);
+        List<TeamUserVo> teamUserVos = teamService.listTeams(teamQuery, true);
+        return ResultUtils.success(teamUserVos);
+    }
+
 }

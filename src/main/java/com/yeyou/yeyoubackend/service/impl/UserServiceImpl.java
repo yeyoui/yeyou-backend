@@ -1,5 +1,6 @@
 package com.yeyou.yeyoubackend.service.impl;
 
+import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.google.gson.Gson;
@@ -10,12 +11,13 @@ import com.yeyou.yeyoubackend.exception.BusinessException;
 import com.yeyou.yeyoubackend.model.domain.User;
 import com.yeyou.yeyoubackend.mapper.UserMapper;
 import com.yeyou.yeyoubackend.service.UserService;
+import com.yeyou.yeyoubackend.utils.AlgorithmUtils;
+import javafx.util.Pair;
+import jodd.util.StringUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.ibatis.ognl.CollectionElementsAccessor;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
-import org.springframework.util.DigestUtils;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
@@ -244,6 +246,45 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>  implements U
         if(request==null) return false;
         Object user = request.getSession().getAttribute(USER_LOGIN_STATE);
         return user==null && isAdmin((User) user);
+    }
+
+    @Override
+    public List<User> mathUsers(long num, User loginUser) {
+        String tagsGson = loginUser.getTags();
+        Gson gson = new Gson();
+        List<String> userTags = gson.fromJson(tagsGson, new TypeToken<List<String>>() {}.getType());
+        List<User> userList = this.query().select("id","tags").ne("tags","[]").list();
+
+        //存储用户标签的相似度 key:相似度分数（越小越接近） value: 用户id
+        ArrayList<Pair<Long, Long>> userTagSimilar = new ArrayList<>(userList.size());
+        for (int i = 0; i < userList.size(); i++) {
+            User newUser = userList.get(i);
+            //剔除空标签和查询用户自己
+            if(StringUtil.isBlank(newUser.getTags()) ||Objects.equals(newUser.getId(),loginUser.getId())) continue;
+            //解析查询用户标签
+            List<String> newUserTags = gson.fromJson(newUser.getTags(), new TypeToken<List<String>>() {
+            }.getType());
+            //计算分数
+            long distance= AlgorithmUtils.minDistance(userTags,newUserTags);
+            userTagSimilar.add(new Pair<>(distance,newUser.getId()));
+        }
+        //将所有用户标签相似度进行排序
+        List<Long> mathUserRankIds = userTagSimilar.stream().
+                sorted((a, b) -> (int) (a.getKey() - b.getKey()))
+                .limit(num)
+                .map(Pair::getValue)
+                .collect(Collectors.toList());
+        //查询用户详细信息
+        String idStr = StrUtil.join(",", mathUserRankIds);
+        List<User> users = this.query().in("id", mathUserRankIds).last("ORDER BY FIELD (id," + idStr + ")").list();
+        users = users.stream().map(this::getSafetyUser).collect(Collectors.toList());
+        return users;
+    }
+
+    @Override
+    public List<User> getRandomUser(int num) {
+        if(num<0 || num>100) throw new BusinessException(ErrorCode.PARAMS_ERROR,"请求数过多，最多为100");
+        return userMapper.getRandomUser(num);
     }
 }
 

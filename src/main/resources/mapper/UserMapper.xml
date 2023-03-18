@@ -29,4 +29,10 @@
         createTime,updateTime,isDelete,
         userRole,userCode,tags
     </sql>
+    <select id="getRandomUser" resultType="com.yeyou.yeyoubackend.model.domain.User">
+        SELECT *
+        FROM user
+        WHERE id>=(SELECT ceil(rand()*(SELECT MAX(id) FROM user)))
+        LIMIT #{num}
+    </select>
 </mapper>

@@ -6,6 +6,7 @@ import com.yeyou.yeyoubackend.model.domain.User;
 import com.yeyou.yeyoubackend.model.domain.UserTeam;
 import com.yeyou.yeyoubackend.model.dto.TeamQuery;
 import com.yeyou.yeyoubackend.model.request.JoinTeamRequest;
+import com.yeyou.yeyoubackend.model.request.TeamQuitRequest;
 import com.yeyou.yeyoubackend.model.request.TeamUpdRequest;
 import com.yeyou.yeyoubackend.model.vo.TeamUserVo;
 
@@ -55,4 +56,20 @@ public interface TeamService extends IService<Team> {
      * 更新队伍人数
      */
     boolean updateTeamMemberCount(int num,boolean inc,long teamId);
+
+    /**
+     * 退出队伍
+     * @param teamQuitRequest
+     * @param loginUser
+     * @return
+     */
+    boolean quitTeam(TeamQuitRequest teamQuitRequest, User loginUser);
+
+    /**
+     * 用户删除队伍
+     * @param teamId
+     * @param loginUser
+     * @return
+     */
+    boolean userDeleteTeam(long teamId, User loginUser);
 }
