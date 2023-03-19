@@ -10,6 +10,7 @@ import com.yeyou.yeyoubackend.contant.UserConstant;
 import com.yeyou.yeyoubackend.exception.BusinessException;
 import com.yeyou.yeyoubackend.model.domain.User;
 import com.yeyou.yeyoubackend.mapper.UserMapper;
+import com.yeyou.yeyoubackend.model.request.TagAddRequest;
 import com.yeyou.yeyoubackend.service.UserService;
 import com.yeyou.yeyoubackend.utils.AlgorithmUtils;
 import javafx.util.Pair;
@@ -181,12 +182,12 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>  implements U
 //        return users.stream().map(this::getSafetyUser).collect(Collectors.toList());
         //内存查询(更灵活)
         Gson gson = new Gson();
-        //先查询所有用户
-        List<User> users = this.list();
+        //先查询所有有标签用户
+        List<User> users = this.query().ne("tags","[]").list();
         return users.stream().filter((user -> {
             String tags = user.getTags();
             Set<String> tempTagsSet = gson.fromJson(tags, new TypeToken<Set<String>>() {}.getType());
-            tempTagsSet=Optional.of(tempTagsSet).orElse(new HashSet<>());
+            if(tempTagsSet==null) return false;
             for (String tag : tagList) {
                 if(!tempTagsSet.contains(tag)) return false;
             }
@@ -285,6 +286,30 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>  implements U
     public List<User> getRandomUser(int num) {
         if(num<0 || num>100) throw new BusinessException(ErrorCode.PARAMS_ERROR,"请求数过多，最多为100");
         return userMapper.getRandomUser(num);
+    }
+
+    @Override
+    public List<String> getMyTags(User loginUser) {
+        User user = this.query().select("tags").eq("id", loginUser.getId()).one();
+        String tags = user.getTags();
+        if(StringUtils.isEmpty(tags)) return new ArrayList<>();
+        Gson gson = new Gson();
+        return gson.fromJson(tags, new TypeToken<List<String>>() {
+        }.getType());
+    }
+
+    @Override
+    public Boolean updMyTags(List<String> tags, User loginUser) {
+        if(tags==null) throw new BusinessException(ErrorCode.PARAMS_ERROR);
+        Gson gson = new Gson();
+        String json = gson.toJson(tags, new TypeToken<List<String>>() {
+        }.getType());
+        User user = new User();
+        user.setId(loginUser.getId());
+        user.setTags(json);
+        boolean result = this.updateById(user);
+        if(!result) throw new BusinessException(ErrorCode.SYSTEM_ERROR);
+        return true;
     }
 }
 

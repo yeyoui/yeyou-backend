@@ -71,8 +71,8 @@ create table tag
     createTime datetime default CURRENT_TIMESTAMP null comment '创建时间',
     updateTime datetime default CURRENT_TIMESTAMP null on update CURRENT_TIMESTAMP,
     isDelete   tinyint  default 0 not null comment '是否删除',
-    constraint uniIdx_tagName
-        unique (tagName)
+#     constraint uniIdx_tagName
+#         unique (tagName)
 ) comment '标签';
 
 create index idx_userId

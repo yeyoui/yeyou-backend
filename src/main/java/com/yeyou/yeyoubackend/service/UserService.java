@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.extension.service.IService;
 import com.yeyou.yeyoubackend.common.BaseResponse;
 import com.yeyou.yeyoubackend.contant.UserConstant;
 import com.yeyou.yeyoubackend.model.domain.User;
+import com.yeyou.yeyoubackend.model.request.TagAddRequest;
 
 import javax.servlet.http.HttpServletRequest;
 import java.util.List;
@@ -96,4 +97,17 @@ public interface UserService extends IService<User> {
      * 随机获取用户
      */
     List<User> getRandomUser(int num);
+
+
+    /**
+     * 获取登录用户的所有标签
+     * @param loginUser
+     * @return
+     */
+    List<String> getMyTags(User loginUser);
+
+    /**
+     * 更新登录用户的标签
+     */
+    Boolean updMyTags(List<String> tags,User loginUser);
 }

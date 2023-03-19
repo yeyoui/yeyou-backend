@@ -7,6 +7,7 @@ import com.yeyou.yeyoubackend.common.ErrorCode;
 import com.yeyou.yeyoubackend.common.ResultUtils;
 import com.yeyou.yeyoubackend.exception.BusinessException;
 import com.yeyou.yeyoubackend.model.domain.User;
+import com.yeyou.yeyoubackend.model.request.TagAddRequest;
 import com.yeyou.yeyoubackend.model.request.UserLoginRequest;
 import com.yeyou.yeyoubackend.model.request.UserRegisterRequest;
 import com.yeyou.yeyoubackend.service.UserService;
@@ -115,6 +116,7 @@ public class UserController {
         return ResultUtils.success(users);
     }
 
+
     @PostMapping("/delete")
     public BaseResponse<Boolean> deleteUser(@RequestBody long id, HttpServletRequest request) {
         if (!isAdmin(request)) {
@@ -198,5 +200,20 @@ public class UserController {
         return ResultUtils.success(userService.mathUsers(num, loginUser));
     }
 
+    @GetMapping("/getMyTags")
+    public BaseResponse<List<String>> getMyTags(HttpServletRequest request){
+        User loginUser = userService.getLoginUser(request);
+        List<String> tags=userService.getMyTags(loginUser);
+        return ResultUtils.success(tags);
+    }
+
+    @GetMapping("/updateMyTags")
+    public BaseResponse<Boolean> updateMyTags(@RequestParam(required = false) List<String> tagNameList, HttpServletRequest request){
+        //1.校验参数信息
+        if(tagNameList==null) throw new BusinessException(ErrorCode.PARAMS_ERROR);
+        User loginUser = userService.getLoginUser(request);
+        Boolean success = userService.updMyTags(tagNameList, loginUser);
+        return ResultUtils.success(success);
+    }
 
 }
