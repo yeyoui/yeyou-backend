@@ -1,7 +1,6 @@
 package com.yeyou.yeyoubackend.job;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.yeyou.yeyoubackend.contant.RedisConstant;
 import com.yeyou.yeyoubackend.model.domain.User;
 import com.yeyou.yeyoubackend.service.UserService;
 import lombok.extern.slf4j.Slf4j;
@@ -12,7 +11,6 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.Resource;
-import java.lang.reflect.Array;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.TimeUnit;

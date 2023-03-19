@@ -7,7 +7,6 @@ import com.yeyou.yeyoubackend.common.ErrorCode;
 import com.yeyou.yeyoubackend.common.ResultUtils;
 import com.yeyou.yeyoubackend.exception.BusinessException;
 import com.yeyou.yeyoubackend.model.domain.User;
-import com.yeyou.yeyoubackend.model.request.TagAddRequest;
 import com.yeyou.yeyoubackend.model.request.UserLoginRequest;
 import com.yeyou.yeyoubackend.model.request.UserRegisterRequest;
 import com.yeyou.yeyoubackend.service.UserService;
@@ -20,7 +19,6 @@ import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
-import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;

@@ -58,6 +58,18 @@ create table user_team
     isDelete   tinyint  default 0 not null comment '是否删除'
 ) comment '用户队伍关系';
 
+create table team_seckill
+(
+    id         bigint auto_increment comment 'id' primary key,
+    teamId     bigint                             not null comment '队伍id',
+    joinNum    int                                not null comment '本次可加入人数',
+    beginTime  datetime                           not null comment '开始时间',
+    endTime    datetime                           not null comment '结束时间',
+    createTime datetime default CURRENT_TIMESTAMP null comment '创建时间',
+    updateTime datetime default CURRENT_TIMESTAMP null on update CURRENT_TIMESTAMP comment '更新时间',
+    isDelete   tinyint  default 0                 not null comment '是否删除'
+) comment '队伍抢夺表';
+
 
 -- 标签表（可以不创建，因为标签字段已经放到了用户表中）
 create table tag

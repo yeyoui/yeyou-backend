@@ -4,7 +4,8 @@ public enum TeamStatusEnum {
 
     PUBLIC("公开",0),
     PRIVATE("私有", 1),
-    SECRET("加密", 2);
+    SECRET("加密", 2),
+    SECKILL("争夺", 3);
     private String text;
     private int val;
 

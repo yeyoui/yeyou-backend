@@ -221,10 +221,13 @@ public class TeamServiceImpl extends ServiceImpl<TeamMapper, Team>
         //2. 队伍必须存在
         Team joinTeam = this.getById(teamId);
         if(joinTeam==null) throw new BusinessException(ErrorCode.NULL_ERROR,"队伍不存在");
-        //3. 队伍不能是私有的
+        //3. 队伍不能是私有的或者争夺状态
         TeamStatusEnum statusEnum = TeamStatusEnum.getTeamStatusEnum(joinTeam.getStatus());
         if(TeamStatusEnum.PRIVATE.equals(statusEnum)){
             throw new BusinessException(ErrorCode.NO_AUTH, "禁止加入私有队伍");
+        }
+        if (TeamStatusEnum.SECKILL.equals(statusEnum)) {
+            throw new BusinessException(ErrorCode.NO_AUTH, "请前往秒杀界面加入用户");
         }
         //4. 队伍不能过期
         Date expireTime = joinTeam.getExpireTime();

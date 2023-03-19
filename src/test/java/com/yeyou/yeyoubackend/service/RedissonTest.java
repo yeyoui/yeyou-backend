@@ -1,8 +1,5 @@
 package com.yeyou.yeyoubackend.service;
 
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.yeyou.yeyoubackend.model.domain.User;
-import jodd.time.TimeUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
 import org.redisson.api.RLock;
@@ -16,7 +13,6 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import static com.yeyou.yeyoubackend.contant.RedisConstant.LOCK_SCHEDULE_RECOMMEND_CACHE;
-import static com.yeyou.yeyoubackend.contant.RedisConstant.USER_RECOMMEND_KEY;
 
 @SpringBootTest
 @Slf4j

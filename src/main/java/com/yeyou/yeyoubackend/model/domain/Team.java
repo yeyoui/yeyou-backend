@@ -55,7 +55,7 @@ public class Team implements Serializable {
     private Integer memberNum;
 
     /**
-     * 0 - 公开，1 - 私有，2 - 加密
+     * 0 - 公开，1 - 私有，2 - 加密   3.争夺
      */
     private Integer status;
 

@@ -2,7 +2,6 @@ package com.yeyou.yeyoubackend;
 
 import com.yeyou.yeyoubackend.model.domain.User;
 import com.yeyou.yeyoubackend.service.UserService;
-import org.junit.Assert;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
