@@ -3,8 +3,10 @@ package com.yeyou.yeyoubackend.service;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.yeyou.yeyoubackend.common.BaseResponse;
 import com.yeyou.yeyoubackend.contant.UserConstant;
+import com.yeyou.yeyoubackend.model.domain.Team;
 import com.yeyou.yeyoubackend.model.domain.User;
 import com.yeyou.yeyoubackend.model.request.TagAddRequest;
+import com.yeyou.yeyoubackend.model.vo.TeamUserVo;
 
 import javax.servlet.http.HttpServletRequest;
 import java.util.List;
@@ -110,4 +112,5 @@ public interface UserService extends IService<User> {
      * 更新登录用户的标签
      */
     Boolean updMyTags(List<String> tags,User loginUser);
+
 }

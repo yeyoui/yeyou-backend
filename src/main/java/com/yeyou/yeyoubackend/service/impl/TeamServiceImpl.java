@@ -153,32 +153,9 @@ public class TeamServiceImpl extends ServiceImpl<TeamMapper, Team>
         if(CollectionUtils.isEmpty(teamList)){
             return new ArrayList<>();
         }
+        //封装
         List<TeamUserVo> TeamUserVos =teamList.stream()
-                .map(team -> {
-                    TeamUserVo teamUserVo = new TeamUserVo();
-                    UserVo userVo = new UserVo();
-                    BeanUtils.copyProperties(team,teamUserVo);
-                    //获取队长信息
-                    Long userId=team.getUserId();
-                    User user = userService.getById(userId);
-                    //队长信息正确
-                    if(user!=null){
-                        //数据脱敏
-                        BeanUtils.copyProperties(user,userVo);
-                        teamUserVo.setCreateUser(userVo);
-                    }
-                    //获取成员信息
-                    Long teamId = team.getId();
-                    List<UserVo> memberList=null;
-                    if(teamId!=0) memberList = userTeamService.getUserVoListByTeamId(teamId);
-                    if(memberList!=null && !memberList.isEmpty()){
-                        teamUserVo.setMemberList(memberList);
-                    }
-                    /**
-                     * TODO 设置是否已加入
-                     */
-                    return teamUserVo;
-                }).collect(Collectors.toList());
+                .map(this::packageTeamUserVo).collect(Collectors.toList());
         return TeamUserVos;
     }
 
@@ -349,6 +326,44 @@ public class TeamServiceImpl extends ServiceImpl<TeamMapper, Team>
         //5. 删除队伍
         return this.removeById(teamId);
     }
+
+    @Override
+    public TeamUserVo getTeamsById(Long teamId) {
+        Team team = this.getById(teamId);
+        //队伍不存在
+        if(team==null) return new TeamUserVo();
+        return packageTeamUserVo(team);
+    }
+
+
+    @Override
+    public TeamUserVo packageTeamUserVo(Team team){
+        TeamUserVo teamUserVo = new TeamUserVo();
+        UserVo userVo = new UserVo();
+        BeanUtils.copyProperties(team,teamUserVo);
+        //获取队长信息
+        Long userId=team.getUserId();
+        User user = userService.getById(userId);
+        //队长信息正确
+        if(user!=null){
+            //数据脱敏
+            BeanUtils.copyProperties(user,userVo);
+            teamUserVo.setCreateUser(userVo);
+        }
+        //获取成员信息
+        Long teamId = team.getId();
+        List<UserVo> memberList=null;
+        if(teamId!=0) memberList = userTeamService.getUserVoListByTeamId(teamId);
+        if(memberList!=null && !memberList.isEmpty()){
+            teamUserVo.setMemberList(memberList);
+        }
+        //设置是否已加入
+        long count = userTeamService.query().eq("userId", userId).eq("teamId", teamId).count();
+        teamUserVo.setHasJoin(count != 0);
+        return teamUserVo;
+    }
+
+
 
 }
 

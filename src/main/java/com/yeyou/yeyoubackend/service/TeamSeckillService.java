@@ -1,12 +1,16 @@
 package com.yeyou.yeyoubackend.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.yeyou.yeyoubackend.model.domain.Team;
 import com.yeyou.yeyoubackend.model.domain.TeamSeckill;
 import com.yeyou.yeyoubackend.model.domain.User;
 import com.yeyou.yeyoubackend.model.request.TeamSeckillDelRequest;
 import com.yeyou.yeyoubackend.model.request.TeamSeckillRequest;
+import com.yeyou.yeyoubackend.model.vo.TeamUserSeckillVo;
+import com.yeyou.yeyoubackend.model.vo.TeamUserVo;
 
 import javax.servlet.http.HttpServletRequest;
+import java.util.List;
 
 /**
 * @author lhy
@@ -43,4 +47,18 @@ public interface TeamSeckillService extends IService<TeamSeckill> {
      * @param teamId
      */
     void shiftToUpdateSeckill(TeamSeckillRequest teamSeckillRequest,Long teamId);
+
+    /**
+     * 获取争夺队列的所有队伍
+     * @return
+     */
+    List<TeamUserSeckillVo> listAll();
+
+    /**
+     * 请求争夺队伍
+     * @param teamId
+     * @param loginUser
+     * @return
+     */
+    boolean joinSeckillTeam(Long teamId, User loginUser);
 }

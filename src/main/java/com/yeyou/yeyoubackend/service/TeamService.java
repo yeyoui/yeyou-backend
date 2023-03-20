@@ -72,4 +72,18 @@ public interface TeamService extends IService<Team> {
      * @return
      */
     boolean userDeleteTeam(long teamId, User loginUser);
+
+    /**
+     * 封装队伍信息
+     * @param team
+     * @return
+     */
+    TeamUserVo packageTeamUserVo(Team team);
+
+    /**
+     * 根据队伍ID查询（Redis）
+     * @param teamId
+     * @return
+     */
+    TeamUserVo getTeamsById(Long teamId);
 }
