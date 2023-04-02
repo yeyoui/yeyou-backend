@@ -28,7 +28,6 @@ public class SwaggerConfig {
         return new Docket(DocumentationType.SWAGGER_2)
                 .apiInfo(apiInfo())
                 .select()
-                // 这里一定要标注你控制器的位置
                 .apis(RequestHandlerSelectors.basePackage("com.yeyou.yeyoubackend.controller"))
                 .paths(PathSelectors.any())
                 .build();
@@ -43,7 +42,7 @@ public class SwaggerConfig {
                 .title("夜友用户中心")
                 .description("夜友用户中心接口文档")
                 .termsOfServiceUrl("https://github.com/yeyoui")
-                .contact(new Contact("yupi","https://github.com/yeyoui","xxx@qq.com"))
+                .contact(new Contact("yeyoui","https://github.com/yeyoui","xxx@qq.com"))
                 .version("1.0")
                 .build();
     }

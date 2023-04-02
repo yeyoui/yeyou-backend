@@ -18,6 +18,7 @@ spring:
     host: 127.0.0.1
     port: 6379
     redissonDatabase: 3
+    password: 123456
 server:
   port: 8080
   servlet:

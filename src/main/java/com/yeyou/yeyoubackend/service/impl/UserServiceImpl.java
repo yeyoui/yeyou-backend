@@ -57,7 +57,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>  implements U
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "用户密码过短");
         }
         if (userCode.length() > 5) {
-            throw new BusinessException(ErrorCode.PARAMS_ERROR, "星球编号过长");
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "用户编号过长");
         }
         // 账户不能包含特殊字符
         String validPattern = "[`~!@#$%^&*()+=|{}':;',\\\\[\\\\].<>/?~！@#￥%……&*（）——+|{}【】‘；：”“’。，、？]";
@@ -76,7 +76,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>  implements U
         if (count > 0) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "账号重复");
         }
-        //星球编号不能重复
+        //用户编号不能重复
         queryWrapper = new QueryWrapper<>();
         queryWrapper.eq("userCode",userCode);
         count = userMapper.selectCount(queryWrapper);

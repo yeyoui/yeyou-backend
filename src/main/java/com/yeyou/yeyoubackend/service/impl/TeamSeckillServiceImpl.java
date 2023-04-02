@@ -200,7 +200,7 @@ public class TeamSeckillServiceImpl extends ServiceImpl<TeamSeckillMapper, TeamS
     @Override
     public List<TeamUserSeckillVo> listAll() {
         //1.获取有效争夺状态的队伍ID
-        List<TeamSeckill> teamSeckills = this.query().select("id","teamId","joinNum").gt("endTime", new Date()).list();
+        List<TeamSeckill> teamSeckills = this.query().gt("endTime", new Date()).list();
         if(teamSeckills==null) return new ArrayList<>();
         List<TeamUserSeckillVo> seckillVoCollect = teamSeckills.stream().map((teamSeckill -> {
             TeamUserSeckillVo seckillVo = new TeamUserSeckillVo();
@@ -208,6 +208,8 @@ public class TeamSeckillServiceImpl extends ServiceImpl<TeamSeckillMapper, TeamS
             TeamUserVo teamUserVo = teamService.getTeamsById(teamSeckill.getTeamId());
             BeanUtils.copyProperties(teamUserVo, seckillVo);
             seckillVo.setJoinNum(teamSeckill.getJoinNum());
+            seckillVo.setBeginTime(teamSeckill.getBeginTime());
+            seckillVo.setEndTime(teamSeckill.getEndTime());
             return seckillVo;
         })).collect(Collectors.toList());
         return seckillVoCollect;

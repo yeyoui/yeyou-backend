@@ -50,6 +50,11 @@ public class TeamQuery extends PageRequest {
     private Long userId;
 
     /**
+     *队长名
+     */
+    private String leaderName;
+
+    /**
      * 0 - 公开，1 - 私有，2 - 加密
      */
     private Integer status;

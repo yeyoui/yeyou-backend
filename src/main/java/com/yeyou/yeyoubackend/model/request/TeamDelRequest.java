@@ -7,7 +7,7 @@ import java.io.Serializable;
 /**
  * 队伍删除请求体
  *
- * @author yupi
+ * @author yeyoui
  */
 @Data
 public class TeamDelRequest implements Serializable {

@@ -1,7 +1,10 @@
 package com.yeyou.yeyoubackend.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 import com.yeyou.yeyoubackend.common.ErrorCode;
 import com.yeyou.yeyoubackend.exception.BusinessException;
 import com.yeyou.yeyoubackend.mapper.TeamMapper;
@@ -13,6 +16,7 @@ import com.yeyou.yeyoubackend.model.enums.TeamStatusEnum;
 import com.yeyou.yeyoubackend.model.request.JoinTeamRequest;
 import com.yeyou.yeyoubackend.model.request.TeamQuitRequest;
 import com.yeyou.yeyoubackend.model.request.TeamUpdRequest;
+import com.yeyou.yeyoubackend.model.vo.TeamUserPageVo;
 import com.yeyou.yeyoubackend.model.vo.TeamUserVo;
 import com.yeyou.yeyoubackend.model.vo.UserVo;
 import com.yeyou.yeyoubackend.service.TeamService;
@@ -20,6 +24,7 @@ import com.yeyou.yeyoubackend.service.UserService;
 import com.yeyou.yeyoubackend.service.UserTeamService;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.BeanUtils;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
@@ -27,6 +32,8 @@ import org.springframework.util.CollectionUtils;
 import javax.annotation.Resource;
 import java.util.*;
 import java.util.stream.Collectors;
+
+import static com.yeyou.yeyoubackend.contant.RedisConstant.TEAM_INFO_KEY;
 
 /**
 * @author lhy
@@ -41,7 +48,10 @@ public class TeamServiceImpl extends ServiceImpl<TeamMapper, Team>
     private UserTeamService userTeamService;
     @Resource
     private UserService userService;
+    @Resource
+    RedisTemplate<String,String> redisTemplate;
     private Long teamId;
+    private List<Team> teamPageRecords;
 
     @Override
     public long addTeam(Team team, User loginUser) {
@@ -106,9 +116,25 @@ public class TeamServiceImpl extends ServiceImpl<TeamMapper, Team>
 
     @Override
     public List<TeamUserVo> listTeams(TeamQuery teamQuery, boolean isAdmin) {
+        //获取查询Wrapper
+        QueryWrapper<Team> queryWrapper = getTeamQueryWrapper(teamQuery, isAdmin);
+        if (queryWrapper == null) return null;
+        //查询队伍
+        List<Team> teamList = this.list(queryWrapper);
+        //如果为空返回空数组
+        if(CollectionUtils.isEmpty(teamList)){
+            return new ArrayList<>();
+        }
+        //封装
+        List<TeamUserVo> TeamUserVos =teamList.stream()
+                .map(this::packageTeamUserVo).collect(Collectors.toList());
+        return TeamUserVos;
+    }
+
+    private QueryWrapper<Team> getTeamQueryWrapper(TeamQuery teamQuery, boolean isAdmin) {
         QueryWrapper<Team> queryWrapper = new QueryWrapper<>();
         //根据给定的条件查询
-        if(teamQuery!=null){
+        if(teamQuery !=null){
             //1. 通过id查询
             Long teamId = teamQuery.getId();
             queryWrapper.eq((teamId != null && teamId >= 0), "id", teamId);
@@ -128,7 +154,7 @@ public class TeamServiceImpl extends ServiceImpl<TeamMapper, Team>
             queryWrapper.like(StringUtils.isNotBlank(description), "description", description);
             //6. 通过最大人数查询
             Integer maxNum = teamQuery.getMaxNum();
-            queryWrapper.eq((maxNum != null), "maxNum", maxNum);
+            queryWrapper.lt((maxNum != null), "maxNum", maxNum);
             //7. 通过创建者id查询
             Long userId = teamQuery.getUserId();
             queryWrapper.eq((userId != null), "userId", userId);
@@ -146,17 +172,43 @@ public class TeamServiceImpl extends ServiceImpl<TeamMapper, Team>
             //9.通过队长id查询
             Long leaderId = teamQuery.getLeaderId();
             queryWrapper.eq((leaderId != null), "leaderId", leaderId);
+            //10.通过队长名查询
+            String leaderName= teamQuery.getLeaderName();
+            if(StringUtils.isNotBlank(leaderName)){
+                List<Long> userList = userService.query()
+                        .select("id")
+                        .like(StringUtils.isNotBlank(leaderName), "username", leaderName)
+                        .list().stream().map(User::getId).collect(Collectors.toList());
+                if((userList.isEmpty())) return null;
+                queryWrapper.in( "leaderId", userList);
+            }
         }
         //不展示过期队伍 select ... from team where expireTime is Null or expireTime > now()
         queryWrapper.and(qw -> qw.isNull("expireTime").or().gt("expireTime", new Date()));
-        List<Team> teamList = this.list(queryWrapper);
-        if(CollectionUtils.isEmpty(teamList)){
-            return new ArrayList<>();
+        return queryWrapper;
+    }
+
+    @Override
+    public TeamUserPageVo pageTeams(TeamQuery teamQuery, boolean isAdmin) {
+        //获取查询Wrapper
+        QueryWrapper<Team> queryWrapper = getTeamQueryWrapper(teamQuery, isAdmin);
+        if (queryWrapper == null) return null;
+        //查询队伍基本信息
+        Page<Team> teamPage = this.page(new Page<>(teamQuery.getPageNum(),teamQuery.getPageSize()), queryWrapper);
+
+        //如果为空返回null
+        teamPageRecords = teamPage.getRecords();
+        if(CollectionUtils.isEmpty(teamPageRecords)){
+            return null;
         }
         //封装
-        List<TeamUserVo> TeamUserVos =teamList.stream()
+        TeamUserPageVo teamUserPageVo = new TeamUserPageVo();
+        teamUserPageVo.setTotal(teamPage.getTotal());
+        teamUserPageVo.setCurPage(teamPage.getCurrent());
+        List<TeamUserVo> TeamUserVos =teamPageRecords.stream()
                 .map(this::packageTeamUserVo).collect(Collectors.toList());
-        return TeamUserVos;
+        teamUserPageVo.setTeamUserVoList(TeamUserVos);
+        return teamUserPageVo;
     }
 
     @Override
@@ -329,9 +381,20 @@ public class TeamServiceImpl extends ServiceImpl<TeamMapper, Team>
 
     @Override
     public TeamUserVo getTeamsById(Long teamId) {
+        Gson gson = new Gson();
+        //1.从redis中获取缓存
+        String redisKey=TEAM_INFO_KEY+teamId;
+        String value=redisTemplate.opsForValue().get(redisKey);
+        if(StringUtils.isNotBlank(value)){
+            //缓存命中
+            return gson.fromJson(value,new TypeToken<TeamUserVo>(){}.getType());
+        }
         Team team = this.getById(teamId);
         //队伍不存在
         if(team==null) return new TeamUserVo();
+
+        //将数据缓存到Redis中
+
         return packageTeamUserVo(team);
     }
 
@@ -342,7 +405,7 @@ public class TeamServiceImpl extends ServiceImpl<TeamMapper, Team>
         UserVo userVo = new UserVo();
         BeanUtils.copyProperties(team,teamUserVo);
         //获取队长信息
-        Long userId=team.getUserId();
+        Long userId=team.getLeaderId();
         User user = userService.getById(userId);
         //队长信息正确
         if(user!=null){

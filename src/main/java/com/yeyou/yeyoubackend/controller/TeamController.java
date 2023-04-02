@@ -11,6 +11,7 @@ import com.yeyou.yeyoubackend.model.domain.User;
 import com.yeyou.yeyoubackend.model.domain.UserTeam;
 import com.yeyou.yeyoubackend.model.dto.TeamQuery;
 import com.yeyou.yeyoubackend.model.request.*;
+import com.yeyou.yeyoubackend.model.vo.TeamUserPageVo;
 import com.yeyou.yeyoubackend.model.vo.TeamUserVo;
 import com.yeyou.yeyoubackend.service.TeamService;
 import com.yeyou.yeyoubackend.service.UserService;
@@ -77,22 +78,14 @@ public class TeamController {
         boolean isAdmin = userService.isAdmin(request);
         List<TeamUserVo> TeamUserVos = teamService.listTeams(teamQuery, isAdmin);
         return ResultUtils.success(TeamUserVos);
-//        Team team = new Team();
-//        BeanUtils.copyProperties(teamQuery,team);
-//        QueryWrapper<Team> teamQueryWrapper = new QueryWrapper<>(team);
-//        List<Team> teamList = teamService.list(teamQueryWrapper);
-//        return ResultUtils.success(teamList);
     }
 
     @GetMapping("/list/page")
-    public BaseResponse<Page<Team>> listTeamsByPage(TeamQuery teamQuery){
+    public BaseResponse<TeamUserPageVo> listTeamsByPage(TeamQuery teamQuery, HttpServletRequest request){
         if(teamQuery==null) throw new BusinessException(ErrorCode.PARAMS_ERROR);
-        Team team = new Team();
-        BeanUtils.copyProperties(teamQuery,team);
-        QueryWrapper<Team> teamQueryWrapper = new QueryWrapper<>(team);
-        Page<Team> teamPage = new Page<>(teamQuery.getPageNum(),teamQuery.getPageSize());
-        Page<Team> teamPages = teamService.page(teamPage, teamQueryWrapper);
-        return ResultUtils.success(teamPages);
+        boolean isAdmin = userService.isAdmin(request);
+        TeamUserPageVo TeamUserVos = teamService.pageTeams(teamQuery, isAdmin);
+        return ResultUtils.success(TeamUserVos);
     }
 
     /**
@@ -172,6 +165,7 @@ public class TeamController {
         QueryWrapper<UserTeam> userTeamQueryWrapper = new QueryWrapper<>();
         userTeamQueryWrapper.eq("userId", userID);
         List<UserTeam> userTeams = userTeamService.list(userTeamQueryWrapper);
+        if(userTeams==null || userTeams.isEmpty())  return ResultUtils.success(Collections.emptyList());
         Map<Long, List<UserTeam>> userTeamCollect = userTeams.stream().collect(Collectors.groupingBy(UserTeam::getTeamId));
         ArrayList<Long> ids = new ArrayList<>(userTeamCollect.keySet());
         teamQuery.setIdList(ids);

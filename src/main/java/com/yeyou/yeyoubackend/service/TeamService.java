@@ -8,6 +8,7 @@ import com.yeyou.yeyoubackend.model.dto.TeamQuery;
 import com.yeyou.yeyoubackend.model.request.JoinTeamRequest;
 import com.yeyou.yeyoubackend.model.request.TeamQuitRequest;
 import com.yeyou.yeyoubackend.model.request.TeamUpdRequest;
+import com.yeyou.yeyoubackend.model.vo.TeamUserPageVo;
 import com.yeyou.yeyoubackend.model.vo.TeamUserVo;
 
 import javax.servlet.http.HttpServletRequest;
@@ -35,6 +36,14 @@ public interface TeamService extends IService<Team> {
      * @return
      */
     List<TeamUserVo> listTeams(TeamQuery teamQuery, boolean isAdmin);
+
+    /**
+     * 分页显示指定的队伍
+     * @param teamQuery
+     * @param isAdmin
+     * @return
+     */
+    TeamUserPageVo pageTeams(TeamQuery teamQuery, boolean isAdmin);
 
     /**
      * 更新队伍信息
