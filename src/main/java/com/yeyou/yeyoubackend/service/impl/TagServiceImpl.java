@@ -3,6 +3,7 @@ package com.yeyou.yeyoubackend.service.impl;
 
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.yeyou.yeyoubackend.common.ErrorCode;
+import com.yeyou.yeyoubackend.contant.RedisConstant;
 import com.yeyou.yeyoubackend.exception.BusinessException;
 import com.yeyou.yeyoubackend.mapper.TagMapper;
 import com.yeyou.yeyoubackend.model.domain.Tag;
@@ -12,10 +13,12 @@ import com.yeyou.yeyoubackend.model.dto.TagChildren;
 import com.yeyou.yeyoubackend.model.dto.TagListDto;
 import com.yeyou.yeyoubackend.model.request.TagAddRequest;
 import com.yeyou.yeyoubackend.service.TagService;
+import com.yeyou.yeyoubackend.utils.StringRedisCacheUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 
+import javax.annotation.Resource;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
