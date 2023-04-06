@@ -7,9 +7,7 @@ import com.yeyou.yeyoubackend.model.domain.User;
 import com.yeyou.yeyoubackend.model.request.TeamSeckillDelRequest;
 import com.yeyou.yeyoubackend.model.request.TeamSeckillRequest;
 import com.yeyou.yeyoubackend.model.vo.TeamUserSeckillVo;
-import com.yeyou.yeyoubackend.model.vo.TeamUserVo;
 
-import javax.servlet.http.HttpServletRequest;
 import java.util.List;
 
 /**
@@ -52,7 +50,7 @@ public interface TeamSeckillService extends IService<TeamSeckill> {
      * 获取争夺队列的所有队伍
      * @return
      */
-    List<TeamUserSeckillVo> listAll();
+    List<TeamUserSeckillVo> listAll(User loginUser);
 
     /**
      * 请求争夺队伍

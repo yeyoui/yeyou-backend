@@ -6,12 +6,14 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import com.yeyou.yeyoubackend.common.ErrorCode;
+import com.yeyou.yeyoubackend.contant.RedisConstant;
 import com.yeyou.yeyoubackend.contant.UserConstant;
 import com.yeyou.yeyoubackend.exception.BusinessException;
 import com.yeyou.yeyoubackend.model.domain.User;
 import com.yeyou.yeyoubackend.mapper.UserMapper;
 import com.yeyou.yeyoubackend.service.UserService;
 import com.yeyou.yeyoubackend.utils.AlgorithmUtils;
+import com.yeyou.yeyoubackend.utils.StringRedisCacheUtils;
 import javafx.util.Pair;
 import jodd.util.StringUtil;
 import lombok.extern.slf4j.Slf4j;
@@ -21,7 +23,9 @@ import org.springframework.util.CollectionUtils;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
+import java.lang.reflect.Type;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -39,6 +43,8 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>  implements U
 
     @Resource
     private UserMapper userMapper;
+    @Resource
+    private StringRedisCacheUtils redisCacheUtils;
 
     /**
      * 盐值
@@ -200,14 +206,15 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>  implements U
      */
     @Override
     public User getLoginUser(HttpServletRequest request) {
-        if(request==null){
-            throw new BusinessException(ErrorCode.PARAMS_ERROR);
-        }
-        Object curUser = request.getSession().getAttribute(USER_LOGIN_STATE);
-        if(curUser==null){
-            throw new BusinessException(ErrorCode.NOT_LOGIN);
-        }
-        return (User) curUser;
+//        if(request==null){
+//            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+//        }
+//        Object curUser = request.getSession().getAttribute(USER_LOGIN_STATE);
+//        if(curUser==null){
+//            throw new BusinessException(ErrorCode.NOT_LOGIN);
+//        }
+//        return (User) curUser;
+        return this.getById(1);
     }
 
     /**
@@ -254,10 +261,18 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>  implements U
         String tagsGson = loginUser.getTags();
         Gson gson = new Gson();
         List<String> userTags = gson.fromJson(tagsGson, new TypeToken<List<String>>() {}.getType());
-        List<User> userList = this.query().select("id","tags").ne("tags","[]").list();
+        //逻辑过期（一小时）
+        List<User> userList =redisCacheUtils.queryWithLogicalExpireNoParam(RedisConstant.USER_ALL_USERTAGINFO_KEY,
+                "ALL",
+                RedisConstant.USER_ALL_USERTAGINFO_LOCK,
+                ()-> this.query().select("id","tags").ne("tags","[]").list(),
+                1, TimeUnit.HOURS);
+//        List<User> userList = this.query().select("id","tags").ne("tags","[]").list();
 
         //存储用户标签的相似度 key:相似度分数（越小越接近） value: 用户id
         ArrayList<Pair<Long, Long>> userTagSimilar = new ArrayList<>(userList.size());
+        String toJson = gson.toJson(userList);
+        userList=gson.fromJson(toJson, new TypeToken<List<User>>(){}.getType());
         for (int i = 0; i < userList.size(); i++) {
             User newUser = userList.get(i);
             //剔除空标签和查询用户自己

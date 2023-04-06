@@ -10,6 +10,7 @@ import com.yeyou.yeyoubackend.model.domain.User;
 import com.yeyou.yeyoubackend.model.request.UserLoginRequest;
 import com.yeyou.yeyoubackend.model.request.UserRegisterRequest;
 import com.yeyou.yeyoubackend.service.UserService;
+import com.yeyou.yeyoubackend.utils.UserHold;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -79,8 +80,9 @@ public class UserController {
 
     @GetMapping("/current")
     public BaseResponse<User> getCurrentUser(HttpServletRequest request) {
-        Object userObj = request.getSession().getAttribute(USER_LOGIN_STATE);
-        User currentUser = (User) userObj;
+//        Object userObj = request.getSession().getAttribute(USER_LOGIN_STATE);
+//        User currentUser = (User) userObj;
+        User currentUser = UserHold.get();
         if (currentUser == null) {
             throw new BusinessException(ErrorCode.NOT_LOGIN);
         }
@@ -153,10 +155,7 @@ public class UserController {
     public BaseResponse<List<User>> randomUser(int num,HttpServletRequest request){
         List<User> randomUser = userService.getRandomUser(num);
         randomUser = randomUser.stream().map(userService::getSafetyUser).collect(Collectors.toList());
-//        Page<User> userPage = new Page<>();
-//        userPage.setRecords(randomUser);
-//        userPage.setTotal(randomUser.size());
-//        userPage.setCurrent(1);
+
         return ResultUtils.success(randomUser);
     }
 

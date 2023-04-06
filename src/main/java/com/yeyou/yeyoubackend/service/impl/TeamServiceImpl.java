@@ -1,4 +1,5 @@
 package com.yeyou.yeyoubackend.service.impl;
+import java.util.List;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -22,7 +23,10 @@ import com.yeyou.yeyoubackend.model.vo.UserVo;
 import com.yeyou.yeyoubackend.service.TeamService;
 import com.yeyou.yeyoubackend.service.UserService;
 import com.yeyou.yeyoubackend.service.UserTeamService;
+import com.yeyou.yeyoubackend.utils.StringRedisCacheUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.redisson.api.RLock;
+import org.redisson.api.RedissonClient;
 import org.springframework.beans.BeanUtils;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
@@ -30,10 +34,12 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
 
 import javax.annotation.Resource;
+import java.lang.reflect.Type;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-import static com.yeyou.yeyoubackend.contant.RedisConstant.TEAM_INFO_KEY;
+import static com.yeyou.yeyoubackend.contant.RedisConstant.*;
 
 /**
 * @author lhy
@@ -50,8 +56,10 @@ public class TeamServiceImpl extends ServiceImpl<TeamMapper, Team>
     private UserService userService;
     @Resource
     RedisTemplate<String,String> redisTemplate;
-    private Long teamId;
-    private List<Team> teamPageRecords;
+    @Resource
+    private StringRedisCacheUtils redisCacheUtils;
+    @Resource
+    private RedissonClient redissonClient;
 
     @Override
     public long addTeam(Team team, User loginUser) {
@@ -102,7 +110,7 @@ public class TeamServiceImpl extends ServiceImpl<TeamMapper, Team>
         if(!result || team.getId()==null){
             throw new BusinessException(ErrorCode.SYSTEM_ERROR,"创建队伍失败");
         }
-        teamId = team.getId();
+        Long teamId = team.getId();
         UserTeam userTeam = new UserTeam();
         userTeam.setUserId(userId);
         userTeam.setTeamId(teamId);
@@ -115,20 +123,44 @@ public class TeamServiceImpl extends ServiceImpl<TeamMapper, Team>
     }
 
     @Override
-    public List<TeamUserVo> listTeams(TeamQuery teamQuery, boolean isAdmin) {
+    public List<TeamUserVo> listTeams(TeamQuery teamQuery,boolean isAdmin,long userId) {
         //获取查询Wrapper
         QueryWrapper<Team> queryWrapper = getTeamQueryWrapper(teamQuery, isAdmin);
         if (queryWrapper == null) return null;
+        List<Team> teamList=null;
+//        if(noFilter(teamQuery)){
+//            //可选择走Redis缓存
+//        }
         //查询队伍
-        List<Team> teamList = this.list(queryWrapper);
+        teamList = this.list(queryWrapper);
         //如果为空返回空数组
         if(CollectionUtils.isEmpty(teamList)){
             return new ArrayList<>();
         }
         //封装
         List<TeamUserVo> TeamUserVos =teamList.stream()
-                .map(this::packageTeamUserVo).collect(Collectors.toList());
+                .map((teamInfo-> this.packageTeamUserVo(teamInfo,userId))).collect(Collectors.toList());
         return TeamUserVos;
+    }
+
+    /**
+     * 检查查询是否无过滤条件
+     * @param teamQuery
+     * @return
+     */
+    private boolean noFilter(TeamQuery teamQuery) {
+     Long id = teamQuery.getId();
+     List<Long> idList = teamQuery.getIdList();
+     String searchText = teamQuery.getSearchText();
+     String name = teamQuery.getName();
+     Long leaderId = teamQuery.getLeaderId();
+     String description = teamQuery.getDescription();
+     Integer maxNum = teamQuery.getMaxNum();
+     Long userId = teamQuery.getUserId();
+     String leaderName = teamQuery.getLeaderName();
+     Integer status = teamQuery.getStatus();
+     return id == null && idList == null && searchText == null && name == null && leaderId == null &&
+             description == null && maxNum == null && userId == null && leaderName == null && status == null;
     }
 
     private QueryWrapper<Team> getTeamQueryWrapper(TeamQuery teamQuery, boolean isAdmin) {
@@ -189,7 +221,7 @@ public class TeamServiceImpl extends ServiceImpl<TeamMapper, Team>
     }
 
     @Override
-    public TeamUserPageVo pageTeams(TeamQuery teamQuery, boolean isAdmin) {
+    public TeamUserPageVo pageTeams(TeamQuery teamQuery, boolean isAdmin,long userId) {
         //获取查询Wrapper
         QueryWrapper<Team> queryWrapper = getTeamQueryWrapper(teamQuery, isAdmin);
         if (queryWrapper == null) return null;
@@ -197,7 +229,7 @@ public class TeamServiceImpl extends ServiceImpl<TeamMapper, Team>
         Page<Team> teamPage = this.page(new Page<>(teamQuery.getPageNum(),teamQuery.getPageSize()), queryWrapper);
 
         //如果为空返回null
-        teamPageRecords = teamPage.getRecords();
+        List<Team> teamPageRecords = teamPage.getRecords();
         if(CollectionUtils.isEmpty(teamPageRecords)){
             return null;
         }
@@ -205,8 +237,8 @@ public class TeamServiceImpl extends ServiceImpl<TeamMapper, Team>
         TeamUserPageVo teamUserPageVo = new TeamUserPageVo();
         teamUserPageVo.setTotal(teamPage.getTotal());
         teamUserPageVo.setCurPage(teamPage.getCurrent());
-        List<TeamUserVo> TeamUserVos =teamPageRecords.stream()
-                .map(this::packageTeamUserVo).collect(Collectors.toList());
+        List<TeamUserVo> TeamUserVos = teamPageRecords.stream()
+                .map((teamInfo-> this.packageTeamUserVo(teamInfo,userId))).collect(Collectors.toList());
         teamUserPageVo.setTeamUserVoList(TeamUserVos);
         return teamUserPageVo;
     }
@@ -236,6 +268,8 @@ public class TeamServiceImpl extends ServiceImpl<TeamMapper, Team>
         }
         Team updateTeam = new Team();
         BeanUtils.copyProperties(teamUpdRequest,updateTeam);
+        //移除队伍基本信息缓存
+        redisCacheUtils.removeCache(TEAM_INFO_KEY+teamId);
         return this.updateById(updateTeam);
     }
 
@@ -273,21 +307,28 @@ public class TeamServiceImpl extends ServiceImpl<TeamMapper, Team>
         if(teamHadMemberCount>=joinTeam.getMaxNum()){
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "队伍已满");
         }
-        //7. 不能重复加入队伍
+        //7. 不能加入超过5个队伍
         QueryWrapper<UserTeam> teamQueryWrapper = new QueryWrapper<>();
+        teamQueryWrapper.eq("userId",userID);
+        long userJoinTeamCount = userTeamService.count(teamQueryWrapper);
+        if(userJoinTeamCount>=5){
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "最多创建和加入5个队伍");
+        }
+        //利用用户id和队伍id加锁（限制同一个用户恶意刷接口）
+        String lockKey=TEAM_TEAMID_LOCK+joinTeamRequest.getTeamId()+":"+userID;
+        RLock rLock = redissonClient.getLock(lockKey);
+        if(!rLock.tryLock()){
+            throw new BusinessException(ErrorCode.FORBID_MULTI_SUBMIT);
+        }
+        //8. 不能重复加入队伍
+        teamQueryWrapper = new QueryWrapper<>();
         teamQueryWrapper.eq("teamId",teamId);
         teamQueryWrapper.eq("userId",userID);
         long count = userTeamService.count(teamQueryWrapper);
         if(count>0){
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "用户已加入该队伍");
         }
-        //8. 不能加入超过5个队伍
-        teamQueryWrapper = new QueryWrapper<>();
-        teamQueryWrapper.eq("teamId",teamId);
-        long userJoinTeamCount = userTeamService.count(teamQueryWrapper);
-        if(userJoinTeamCount>=5){
-            throw new BusinessException(ErrorCode.PARAMS_ERROR, "最多创建和加入5个队伍");
-        }
+
         UserTeam userTeam = new UserTeam();
         userTeam.setUserId(userID);
         userTeam.setTeamId(teamId);
@@ -296,13 +337,19 @@ public class TeamServiceImpl extends ServiceImpl<TeamMapper, Team>
         if(!result){
             throw new BusinessException(ErrorCode.SYSTEM_ERROR);
         }
+        rLock.unlock();
+        //移除队员缓存
+        redisCacheUtils.removeCache(USERVO_TEAMID_KEY+teamId);
         return userTeamService.save(userTeam);
     }
 
     @Override
     public boolean updateTeamMemberCount(int num, boolean inc,long teamId) {
         String ops = inc ? "+" : "-";
-        return this.update().setSql("memberNum=memberNum"+ops+num).eq("id",teamId).update();
+        return this.update().setSql("memberNum=memberNum"+ops+num)
+                .eq("id",teamId)
+                .gt("memberNum",0)
+                .update();
     }
 
     @Override
@@ -327,6 +374,8 @@ public class TeamServiceImpl extends ServiceImpl<TeamMapper, Team>
         if(team.getMemberNum()==1){
             // 3.1如果只有一个人就直接解散（队长）
             //删除队伍
+            //删除缓存
+            redisCacheUtils.removeCache(TEAM_INFO_KEY+teamId);
             this.removeById(teamId);
         }else {
             //3.2队伍中至少有两人
@@ -347,10 +396,15 @@ public class TeamServiceImpl extends ServiceImpl<TeamMapper, Team>
                 }
             }else{
                 //3.2.1成员退出(队伍成员-1)
-                this.updateTeamMemberCount(1, false, teamId);
+                boolean result = this.updateTeamMemberCount(1, false, teamId);
+                if(!result){
+                    throw new BusinessException(ErrorCode.SYSTEM_ERROR, "退出队伍失败");
+                }
             }
         }
         //删除关系
+        //删除队伍的队友列表缓存
+        redisCacheUtils.removeCache(USERVO_TEAMID_KEY+teamId);
         return userTeamService.remove(userTeamQW);
     }
 
@@ -376,52 +430,58 @@ public class TeamServiceImpl extends ServiceImpl<TeamMapper, Team>
             throw new BusinessException(ErrorCode.SYSTEM_ERROR);
         }
         //5. 删除队伍
+        //删除缓存(队伍信息的缓存，队伍队员的缓存)
+        redisCacheUtils.removeCache(TEAM_INFO_KEY + teamId,USERVO_TEAMID_LOCK+teamId);
         return this.removeById(teamId);
     }
 
     @Override
-    public TeamUserVo getTeamsById(Long teamId) {
+    public TeamUserVo getTeamsById(Long teamId,long userId) {
         Gson gson = new Gson();
         //1.从redis中获取缓存
         String redisKey=TEAM_INFO_KEY+teamId;
-        String value=redisTemplate.opsForValue().get(redisKey);
-        if(StringUtils.isNotBlank(value)){
-            //缓存命中
-            return gson.fromJson(value,new TypeToken<TeamUserVo>(){}.getType());
-        }
-        Team team = this.getById(teamId);
+        Type type = new TypeToken<Team>() {}.getType();
+        Team team = redisCacheUtils.queryWithLock(redisKey, teamId, type, TEAM_TEAMID_LOCK, this::getById,
+                CACHE_COMMON_TTL, TimeUnit.MINUTES);
+        //Mysql
+//        Team team = this.getById(teamId);
         //队伍不存在
         if(team==null) return new TeamUserVo();
-
-        //将数据缓存到Redis中
-
-        return packageTeamUserVo(team);
+        return packageTeamUserVo(team,userId);
     }
 
 
     @Override
-    public TeamUserVo packageTeamUserVo(Team team){
+    public TeamUserVo packageTeamUserVo(Team team,long loginUserId){
         TeamUserVo teamUserVo = new TeamUserVo();
         UserVo userVo = new UserVo();
         BeanUtils.copyProperties(team,teamUserVo);
         //获取队长信息
-        Long userId=team.getLeaderId();
-        User user = userService.getById(userId);
+        Long leaderId=team.getLeaderId();
+        User leader = userService.getById(leaderId);
         //队长信息正确
-        if(user!=null){
+        if(leader!=null){
             //数据脱敏
-            BeanUtils.copyProperties(user,userVo);
+            BeanUtils.copyProperties(leader,userVo);
             teamUserVo.setCreateUser(userVo);
         }
         //获取成员信息
         Long teamId = team.getId();
         List<UserVo> memberList=null;
-        if(teamId!=0) memberList = userTeamService.getUserVoListByTeamId(teamId);
+        //加入redis缓存
+        Type retType = new TypeToken<List<UserVo>>(){}.getType();
+        if(teamId!=null && teamId>0){
+            //Redis
+            memberList = redisCacheUtils.queryWithLock(USERVO_TEAMID_KEY, teamId,retType, USERVO_TEAMID_LOCK,
+                    userTeamService::getUserVoListByTeamId, CACHE_USERVO_TTL, TimeUnit.MINUTES);
+            //Mysql
+//            memberList = userTeamService.getUserVoListByTeamId(teamId);
+        }
         if(memberList!=null && !memberList.isEmpty()){
             teamUserVo.setMemberList(memberList);
         }
         //设置是否已加入
-        long count = userTeamService.query().eq("userId", userId).eq("teamId", teamId).count();
+        long count = userTeamService.query().eq("userId", loginUserId).eq("teamId", teamId).count();
         teamUserVo.setHasJoin(count != 0);
         return teamUserVo;
     }

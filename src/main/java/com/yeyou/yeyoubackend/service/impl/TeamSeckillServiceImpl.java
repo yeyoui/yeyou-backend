@@ -66,79 +66,79 @@ public class TeamSeckillServiceImpl extends ServiceImpl<TeamSeckillMapper, TeamS
     }
 
     //自动执行任务
-//    @PostConstruct
-//    private void init(){
-//        SECKiLL_ORDER_EXECUTOR.submit(new TeamSeckillOrderHandler());
-//    }
-//
-//    private class TeamSeckillOrderHandler implements Runnable{
-//        //每次最多等待59秒后进入下一次循环
-//        private static final long waitTime = 1 * 60 * 1000 -1000;
-//        private static final String GROUP_KEY="stream.teamSeckillOrder";
-//        private static final String GROUP_NAME="TeamSeckillC1";
-//        private final String threadName = Thread.currentThread().getName();
-//        @Override
-//        public void run() {
-//            while(true){
-//                //1.获取消息
-//                try {
-//                    List<MapRecord<String, Object, Object>> mapRecordList = redisTemplate.opsForStream().read(
-//                            Consumer.from(GROUP_NAME,threadName),
-//                            StreamReadOptions.empty().count(1).block(Duration.ofMillis(waitTime)),
-//                            StreamOffset.create(GROUP_KEY, ReadOffset.lastConsumed())
-//                    );
-//                    //没有消息要处理
-//                    if(mapRecordList==null || mapRecordList.isEmpty()) continue;
-//                    //2.处理要获取的消息
-//                    MapRecord<String, Object, Object> record = mapRecordList.get(0);
-//                    Map<Object, Object> value = record.getValue();
-//                    //3.得到消息数据
-//                    TeamSeckillSyncBo teamSeckillSyncBo = BeanUtil.fillBeanWithMap(value, new TeamSeckillSyncBo(), true);
-//                    //4.处理消息
-//                    syncTeamSeckillResult(teamSeckillSyncBo);
-//                    //5.ACK确认处理完成
-//                    redisTemplate.opsForStream().acknowledge(GROUP_KEY,GROUP_NAME,record.getId());
-//                } catch (Exception e) {
-//                    e.printStackTrace();
-//                    log.error("线程 "+threadName+" 处理订单出现问题-->重试");
-//                    //重新处理
-//                    handlePendingList();
-//                }
-//            }
-//        }
-//        private void handlePendingList() {
-//            while(true){
-//                //1.获取消息
-//                try {
-//                    List<MapRecord<String, Object, Object>> mapRecordList = redisTemplate.opsForStream().read(
-//                            Consumer.from(GROUP_NAME,threadName),
-//                            StreamReadOptions.empty().count(1).block(Duration.ofMillis(waitTime)),
-//                            StreamOffset.create(GROUP_KEY, ReadOffset.from("0"))
-//                    );
-//                    //没有消息要处理
-//                    if(mapRecordList==null || mapRecordList.isEmpty()) break;
-//                    //2.处理要获取的消息
-//                    MapRecord<String, Object, Object> record = mapRecordList.get(0);
-//                    Map<Object, Object> value = record.getValue();
-//                    //3.得到消息数据
-//                    TeamSeckillSyncBo teamSeckillSyncBo = BeanUtil.fillBeanWithMap(value, new TeamSeckillSyncBo(), true);
-//                    //4.处理消息
-//                    syncTeamSeckillResult(teamSeckillSyncBo);
-//                    //5.ACK确认处理完成
-//                    redisTemplate.opsForStream().acknowledge(GROUP_KEY,GROUP_NAME,record.getId());
-//                    break;
-//                } catch (Exception e) {
-//                    log.error("线程 "+threadName+" 重新处理订单出现问题-->重试");
-//                    //重新处理
-//                    try {
-//                        Thread.sleep(2000);
-//                    } catch (InterruptedException ex) {
-//                        ex.printStackTrace();
-//                    }
-//                }
-//            }
-//        }
-//    }
+    @PostConstruct
+    private void init(){
+        SECKiLL_ORDER_EXECUTOR.submit(new TeamSeckillOrderHandler());
+    }
+
+    private class TeamSeckillOrderHandler implements Runnable{
+        //每次最多等待59秒后进入下一次循环
+        private static final long waitTime = 1 * 60 * 1000 -1000;
+        private static final String GROUP_KEY="stream.teamSeckillOrder";
+        private static final String GROUP_NAME="TeamSeckillC1";
+        private final String threadName = Thread.currentThread().getName();
+        @Override
+        public void run() {
+            while(true){
+                //1.获取消息
+                try {
+                    List<MapRecord<String, Object, Object>> mapRecordList = redisTemplate.opsForStream().read(
+                            Consumer.from(GROUP_NAME,threadName),
+                            StreamReadOptions.empty().count(1).block(Duration.ofMillis(waitTime)),
+                            StreamOffset.create(GROUP_KEY, ReadOffset.lastConsumed())
+                    );
+                    //没有消息要处理
+                    if(mapRecordList==null || mapRecordList.isEmpty()) continue;
+                    //2.处理要获取的消息
+                    MapRecord<String, Object, Object> record = mapRecordList.get(0);
+                    Map<Object, Object> value = record.getValue();
+                    //3.得到消息数据
+                    TeamSeckillSyncBo teamSeckillSyncBo = BeanUtil.fillBeanWithMap(value, new TeamSeckillSyncBo(), true);
+                    //4.处理消息
+                    syncTeamSeckillResult(teamSeckillSyncBo);
+                    //5.ACK确认处理完成
+                    redisTemplate.opsForStream().acknowledge(GROUP_KEY,GROUP_NAME,record.getId());
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    log.error("线程 "+threadName+" 处理订单出现问题-->重试");
+                    //重新处理
+                    handlePendingList();
+                }
+            }
+        }
+        private void handlePendingList() {
+            while(true){
+                //1.获取消息
+                try {
+                    List<MapRecord<String, Object, Object>> mapRecordList = redisTemplate.opsForStream().read(
+                            Consumer.from(GROUP_NAME,threadName),
+                            StreamReadOptions.empty().count(1).block(Duration.ofMillis(waitTime)),
+                            StreamOffset.create(GROUP_KEY, ReadOffset.from("0"))
+                    );
+                    //没有消息要处理
+                    if(mapRecordList==null || mapRecordList.isEmpty()) break;
+                    //2.处理要获取的消息
+                    MapRecord<String, Object, Object> record = mapRecordList.get(0);
+                    Map<Object, Object> value = record.getValue();
+                    //3.得到消息数据
+                    TeamSeckillSyncBo teamSeckillSyncBo = BeanUtil.fillBeanWithMap(value, new TeamSeckillSyncBo(), true);
+                    //4.处理消息
+                    syncTeamSeckillResult(teamSeckillSyncBo);
+                    //5.ACK确认处理完成
+                    redisTemplate.opsForStream().acknowledge(GROUP_KEY,GROUP_NAME,record.getId());
+                    break;
+                } catch (Exception e) {
+                    log.error("线程 "+threadName+" 重新处理订单出现问题-->重试");
+                    //重新处理
+                    try {
+                        Thread.sleep(2000);
+                    } catch (InterruptedException ex) {
+                        ex.printStackTrace();
+                    }
+                }
+            }
+        }
+    }
     @Override
     @Transactional
     public Long addSeckill(TeamSeckillRequest teamSeckillRequest, User loginUser) {
@@ -198,14 +198,14 @@ public class TeamSeckillServiceImpl extends ServiceImpl<TeamSeckillMapper, TeamS
     }
 
     @Override
-    public List<TeamUserSeckillVo> listAll() {
+    public List<TeamUserSeckillVo> listAll(User loginUser) {
         //1.获取有效争夺状态的队伍ID
         List<TeamSeckill> teamSeckills = this.query().gt("endTime", new Date()).list();
         if(teamSeckills==null) return new ArrayList<>();
         List<TeamUserSeckillVo> seckillVoCollect = teamSeckills.stream().map((teamSeckill -> {
             TeamUserSeckillVo seckillVo = new TeamUserSeckillVo();
             //2通过队伍ID查询详细信息（可用Redis缓存）
-            TeamUserVo teamUserVo = teamService.getTeamsById(teamSeckill.getTeamId());
+            TeamUserVo teamUserVo = teamService.getTeamsById(teamSeckill.getTeamId(), loginUser.getId());
             BeanUtils.copyProperties(teamUserVo, seckillVo);
             seckillVo.setJoinNum(teamSeckill.getJoinNum());
             seckillVo.setBeginTime(teamSeckill.getBeginTime());
@@ -308,7 +308,6 @@ public class TeamSeckillServiceImpl extends ServiceImpl<TeamSeckillMapper, TeamS
         if(!result) throw new BusinessException(ErrorCode.SYSTEM_ERROR);
         return true;
     }
-
 
 }
 

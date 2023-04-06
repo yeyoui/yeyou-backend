@@ -13,7 +13,8 @@ public enum ErrorCode {
     NOT_LOGIN(40100, "未登录", ""),
     NO_AUTH(40101, "无权限", ""),
     SYSTEM_ERROR(50000, "系统内部异常", ""),
-    SECKILL_NORMAL_ERROR(40002, "手速慢啦", "");
+    SECKILL_NORMAL_ERROR(40002, "手速慢啦", ""),
+    FORBID_MULTI_SUBMIT(40003, "禁止重复操作", "");
 
     private final int code;
 

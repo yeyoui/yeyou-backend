@@ -44,18 +44,18 @@ public class TagController {
     @GetMapping("/list")
     public BaseResponse<List<TagListDto>> list(){
         //逻辑过期缓存（1分钟更新一次）
-//        List<TagListDto> tagList = redisCacheUtils.queryWithLogicalExpireNoParam(RedisConstant.TAG_ALL_LIST_KEY, "ALL",
-//                RedisConstant.TAG_ALL_LIST_LOCK + "ALL", tagService::listAll, 1, TimeUnit.MINUTES);
-        List<TagListDto> tagList=tagService.listAll();
+        List<TagListDto> tagList = redisCacheUtils.queryWithLogicalExpireNoParam(RedisConstant.TAG_ALL_LIST_KEY, "ALL",
+                RedisConstant.TAG_ALL_LIST_LOCK + "ALL", tagService::listAll, 1, TimeUnit.MINUTES);
+//        List<TagListDto> tagList=tagService.listAll();
         return ResultUtils.success(tagList);
     }
 
     @GetMapping("/parentList")
     public BaseResponse<List<ParentDto>> parentList(){
         //逻辑过期缓存(1小时更新一次
-//        List<ParentDto> tagList = redisCacheUtils.queryWithLogicalExpireNoParam(RedisConstant.TAG_PARENT_LIST_KEY, "ALL",
-//                RedisConstant.TAG_PARENT_LIST_LOCK + "ALL", tagService::listAllParent, 1, TimeUnit.HOURS);
-        List<ParentDto> tagList=tagService.listAllParent();
+        List<ParentDto> tagList = redisCacheUtils.queryWithLogicalExpireNoParam(RedisConstant.TAG_PARENT_LIST_KEY, "ALL",
+                RedisConstant.TAG_PARENT_LIST_LOCK + "ALL", tagService::listAllParent, 1, TimeUnit.HOURS);
+//        List<ParentDto> tagList=tagService.listAllParent();
         return ResultUtils.success(tagList);
     }
 

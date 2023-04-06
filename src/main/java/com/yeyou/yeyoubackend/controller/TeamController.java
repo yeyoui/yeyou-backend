@@ -16,6 +16,7 @@ import com.yeyou.yeyoubackend.model.vo.TeamUserVo;
 import com.yeyou.yeyoubackend.service.TeamService;
 import com.yeyou.yeyoubackend.service.UserService;
 import com.yeyou.yeyoubackend.service.UserTeamService;
+import com.yeyou.yeyoubackend.utils.UserHold;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.web.bind.annotation.*;
@@ -38,9 +39,9 @@ public class TeamController {
     private TeamService teamService;
 
     @PostMapping("/add")
-    public BaseResponse<Long> addTeam(@RequestBody TeamAddRequest teamAddRequest, HttpServletRequest request){
+    public BaseResponse<Long> addTeam(@RequestBody TeamAddRequest teamAddRequest){
         if(teamAddRequest==null) throw new BusinessException(ErrorCode.PARAMS_ERROR);
-        User loginUser = userService.getLoginUser(request);
+        User loginUser = UserHold.get();
         Team team = new Team();
         BeanUtils.copyProperties(teamAddRequest,team);
         long teamId = teamService.addTeam(team,loginUser);
@@ -57,34 +58,41 @@ public class TeamController {
 //    }
 
     @PostMapping("/update")
-    public BaseResponse<Boolean> updateTeam(@RequestBody TeamUpdRequest teamUpdRequest,HttpServletRequest request){
+    public BaseResponse<Boolean> updateTeam(@RequestBody TeamUpdRequest teamUpdRequest){
         if(teamUpdRequest==null) throw new BusinessException(ErrorCode.PARAMS_ERROR);
-        User loginUser = userService.getLoginUser(request);
+        User loginUser = UserHold.get();
         boolean result = teamService.updateTeam(teamUpdRequest,loginUser);
         if(!result) throw new BusinessException(ErrorCode.SYSTEM_ERROR);
         return ResultUtils.success(true);
     }
     @GetMapping("/get")
-    public BaseResponse<Team> getTeamById(long id){
+    public BaseResponse<Team> getTeamById(long id,HttpServletRequest request){
         if(id<0) throw new BusinessException(ErrorCode.PARAMS_ERROR);
+        Long loginUserId = userService.getLoginUser(request).getId();
         Team team = teamService.getById(id);
         if(team==null) throw new BusinessException(ErrorCode.NULL_ERROR);
+        //数据脱敏（防止队伍信息暴露）
+        if(!Objects.equals(loginUserId, team.getUserId())){
+            team.setPassword("");
+        }
         return ResultUtils.success(team);
     }
 
     @GetMapping("/list")
-    public BaseResponse<List<TeamUserVo>> listTeams(TeamQuery teamQuery,HttpServletRequest request){
+    public BaseResponse<List<TeamUserVo>> listTeams(TeamQuery teamQuery){
         if(teamQuery==null) throw new BusinessException(ErrorCode.PARAMS_ERROR);
-        boolean isAdmin = userService.isAdmin(request);
-        List<TeamUserVo> TeamUserVos = teamService.listTeams(teamQuery, isAdmin);
+        User loginUser = UserHold.get();
+        boolean isAdmin = userService.isAdmin(loginUser);
+        List<TeamUserVo> TeamUserVos = teamService.listTeams(teamQuery, isAdmin,loginUser.getId());
         return ResultUtils.success(TeamUserVos);
     }
 
     @GetMapping("/list/page")
-    public BaseResponse<TeamUserPageVo> listTeamsByPage(TeamQuery teamQuery, HttpServletRequest request){
+    public BaseResponse<TeamUserPageVo> listTeamsByPage(TeamQuery teamQuery){
         if(teamQuery==null) throw new BusinessException(ErrorCode.PARAMS_ERROR);
-        boolean isAdmin = userService.isAdmin(request);
-        TeamUserPageVo TeamUserVos = teamService.pageTeams(teamQuery, isAdmin);
+        User loginUser = UserHold.get();
+        boolean isAdmin = userService.isAdmin(loginUser);
+        TeamUserPageVo TeamUserVos = teamService.pageTeams(teamQuery, isAdmin,loginUser.getId());
         return ResultUtils.success(TeamUserVos);
     }
 
@@ -147,7 +155,7 @@ public class TeamController {
         if(teamQuery==null) throw new BusinessException(ErrorCode.PARAMS_ERROR);
         Long userID = userService.getLoginUser(request).getId();
         teamQuery.setUserId(userID);
-        List<TeamUserVo> teamUserVos = teamService.listTeams(teamQuery, true);
+        List<TeamUserVo> teamUserVos = teamService.listTeams(teamQuery, true,userID);
         return ResultUtils.success(teamUserVos);
     }
 
@@ -169,7 +177,7 @@ public class TeamController {
         Map<Long, List<UserTeam>> userTeamCollect = userTeams.stream().collect(Collectors.groupingBy(UserTeam::getTeamId));
         ArrayList<Long> ids = new ArrayList<>(userTeamCollect.keySet());
         teamQuery.setIdList(ids);
-        List<TeamUserVo> teamUserVos = teamService.listTeams(teamQuery, true);
+        List<TeamUserVo> teamUserVos = teamService.listTeams(teamQuery, true,userID);
         return ResultUtils.success(teamUserVos);
     }
 

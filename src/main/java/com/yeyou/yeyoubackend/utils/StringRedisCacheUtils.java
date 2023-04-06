@@ -11,7 +11,9 @@ import org.redisson.api.RedissonClient;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
 
+import java.lang.reflect.Type;
 import java.time.LocalDateTime;
+import java.util.Arrays;
 import java.util.concurrent.*;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -81,8 +83,8 @@ public class StringRedisCacheUtils{
      * @return 结果
      * @param <R> 回调函数的结果类型
      */
-    public <R,ID> R queryWithLock(String keyPrefix, ID id, Class<R> type,String lockKey, Function<ID,R> dbCallback,
-                                         long time, TimeUnit timeUnit){
+    public <R,ID> R queryWithLock(String keyPrefix, ID id, Type type, String lockKey, Function<ID,R> dbCallback,
+                                  long time, TimeUnit timeUnit){
         String key=keyPrefix+id;
         //1.先查询缓存是否存在
         String json = redisTemplate.opsForValue().get(key);
@@ -118,7 +120,7 @@ public class StringRedisCacheUtils{
             this.set(key,"", RedisConstant.CACHE_NULL_TTL,TimeUnit.SECONDS);
         }
         //5.将数据写入缓存
-        this.set(key,gson.toJson(result), time,timeUnit);
+        this.set(key,result, time,timeUnit);
         //解锁
         rLock.unlock();
         //6.返回结果
@@ -175,7 +177,7 @@ public class StringRedisCacheUtils{
                     this.set(key,"", RedisConstant.CACHE_NULL_TTL,TimeUnit.MINUTES);
                 }
                 //5.将数据写入缓存
-                this.setWithLogicalExpire(key,gson.toJson(result),time,timeUnit);
+                this.setWithLogicalExpire(key,result,time,timeUnit);
             } finally {
                 rLock.unlock();
             }
@@ -258,5 +260,9 @@ public class StringRedisCacheUtils{
         redisData.setData(value);
         redisData.setExpireTime(LocalDateTime.now().plusSeconds(timeUnit.toSeconds(time)));
         redisTemplate.opsForValue().set(key,gson.toJson(redisData));
+    }
+
+    public void removeCache(String ...key){
+        redisTemplate.delete(Arrays.asList(key));
     }
 }

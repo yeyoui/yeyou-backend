@@ -11,6 +11,7 @@ import com.yeyou.yeyoubackend.model.vo.TeamUserSeckillVo;
 import com.yeyou.yeyoubackend.model.vo.TeamUserVo;
 import com.yeyou.yeyoubackend.service.TeamSeckillService;
 import com.yeyou.yeyoubackend.service.UserService;
+import com.yeyou.yeyoubackend.utils.UserHold;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 
@@ -31,21 +32,20 @@ public class TeamSeckillController {
     /**
      * 将队伍添加到争夺队列中
      * @param teamSeckillRequest
-     * @param request
      * @return
      */
     @PostMapping("/add")
-    public BaseResponse<Long> add(@RequestBody TeamSeckillRequest teamSeckillRequest, HttpServletRequest request){
+    public BaseResponse<Long> add(@RequestBody TeamSeckillRequest teamSeckillRequest){
         if(teamSeckillRequest ==null) throw new BusinessException(ErrorCode.PARAMS_ERROR);
-        User loginUser = userService.getLoginUser(request);
+        User loginUser = UserHold.get();
         Long teamId=teamSeckillService.addSeckill(teamSeckillRequest,loginUser);
         return ResultUtils.success(teamId);
     }
     @Deprecated
     @PostMapping("/update")
-    public BaseResponse<Long> update(@RequestBody TeamSeckillRequest teamSeckillRequest, HttpServletRequest request){
+    public BaseResponse<Long> update(@RequestBody TeamSeckillRequest teamSeckillRequest){
         if(teamSeckillRequest ==null) throw new BusinessException(ErrorCode.PARAMS_ERROR);
-        User loginUser = userService.getLoginUser(request);
+        User loginUser = UserHold.get();
         Long teamId=teamSeckillService.updateSeckill(teamSeckillRequest,loginUser);
         return ResultUtils.success(teamId);
     }
@@ -59,14 +59,15 @@ public class TeamSeckillController {
 
     @GetMapping("/list")
     public BaseResponse<List<TeamUserSeckillVo>> list(){
-        List<TeamUserSeckillVo> list = teamSeckillService.listAll();
+        User loginUser = UserHold.get();
+        List<TeamUserSeckillVo> list = teamSeckillService.listAll(loginUser);
         return ResultUtils.success(list);
     }
 
     @GetMapping("/joinSeckillTeam")
-    public BaseResponse joinSeckillTeam(Long teamId, HttpServletRequest request) {
+    public BaseResponse joinSeckillTeam(Long teamId) {
         if (teamId == null || teamId < 0) throw new BusinessException(ErrorCode.PARAMS_ERROR);
-        User loginUser = userService.getLoginUser(request);
+        User loginUser = UserHold.get();
         boolean success = teamSeckillService.joinSeckillTeam(teamId, loginUser);
         return success ? ResultUtils.success(success) : ResultUtils.error(ErrorCode.SECKILL_NORMAL_ERROR);
     }

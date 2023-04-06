@@ -33,17 +33,19 @@ public interface TeamService extends IService<Team> {
      * 显示所有指定的队伍
      * @param teamQuery
      * @param isAdmin
+     * @param userId
      * @return
      */
-    List<TeamUserVo> listTeams(TeamQuery teamQuery, boolean isAdmin);
+    List<TeamUserVo> listTeams(TeamQuery teamQuery, boolean isAdmin,long userId);
 
     /**
      * 分页显示指定的队伍
      * @param teamQuery
      * @param isAdmin
+     * @param userId 登录用户ID
      * @return
      */
-    TeamUserPageVo pageTeams(TeamQuery teamQuery, boolean isAdmin);
+    TeamUserPageVo pageTeams(TeamQuery teamQuery, boolean isAdmin,long userId);
 
     /**
      * 更新队伍信息
@@ -85,14 +87,15 @@ public interface TeamService extends IService<Team> {
     /**
      * 封装队伍信息
      * @param team
+     * @param loginUserId 查询用户的id
      * @return
      */
-    TeamUserVo packageTeamUserVo(Team team);
+    TeamUserVo packageTeamUserVo(Team team,long loginUserId);
 
     /**
      * 根据队伍ID查询（Redis）
      * @param teamId
      * @return
      */
-    TeamUserVo getTeamsById(Long teamId);
+    TeamUserVo getTeamsById(Long teamId,long userId);
 }
