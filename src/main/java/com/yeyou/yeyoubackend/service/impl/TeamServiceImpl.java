@@ -4,7 +4,6 @@ import java.util.List;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import com.yeyou.yeyoubackend.common.ErrorCode;
 import com.yeyou.yeyoubackend.exception.BusinessException;
@@ -28,6 +27,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.redisson.api.RLock;
 import org.redisson.api.RedissonClient;
 import org.springframework.beans.BeanUtils;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -60,6 +60,9 @@ public class TeamServiceImpl extends ServiceImpl<TeamMapper, Team>
     private StringRedisCacheUtils redisCacheUtils;
     @Resource
     private RedissonClient redissonClient;
+    //用于防止事务失效
+    @Autowired
+    private TeamService teamService;
 
     @Override
     @Transactional
@@ -249,6 +252,7 @@ public class TeamServiceImpl extends ServiceImpl<TeamMapper, Team>
     }
 
     @Override
+    @Transactional
     public boolean updateTeam(TeamUpdRequest teamUpdRequest, User loginUser) {
         if(teamUpdRequest==null) throw new BusinessException(ErrorCode.PARAMS_ERROR);
         //1. ID不为空或小于0
@@ -337,8 +341,8 @@ public class TeamServiceImpl extends ServiceImpl<TeamMapper, Team>
         UserTeam userTeam = new UserTeam();
         userTeam.setUserId(userID);
         userTeam.setTeamId(teamId);
-        //更新队伍成员数量
-        boolean result = this.updateTeamMemberCount(1, true, teamId);
+        //更新队伍成员数量（直接使用代理对象防止事务失效）
+        boolean result = teamService.updateTeamMemberCount(1, true, teamId);
         if(!result){
             throw new BusinessException(ErrorCode.SYSTEM_ERROR);
         }
@@ -349,6 +353,7 @@ public class TeamServiceImpl extends ServiceImpl<TeamMapper, Team>
     }
 
     @Override
+    @Transactional
     public boolean updateTeamMemberCount(int num, boolean inc,long teamId) {
         String ops = inc ? "+" : "-";
         return this.update().setSql("memberNum=memberNum"+ops+num)
@@ -358,6 +363,7 @@ public class TeamServiceImpl extends ServiceImpl<TeamMapper, Team>
     }
 
     @Override
+    @Transactional
     public boolean quitTeam(TeamQuitRequest teamQuitRequest, User loginUser) {
         //1. 校验请求参数
         Long teamId=null;
@@ -400,8 +406,8 @@ public class TeamServiceImpl extends ServiceImpl<TeamMapper, Team>
                     throw new BusinessException(ErrorCode.SYSTEM_ERROR, "更新队伍信息失败");
                 }
             }else{
-                //3.2.1成员退出(队伍成员-1)
-                boolean result = this.updateTeamMemberCount(1, false, teamId);
+                //3.2.1成员退出(队伍成员-1)直接使用代理对象，防止事务失效
+                boolean result = teamService.updateTeamMemberCount(1, false, teamId);
                 if(!result){
                     throw new BusinessException(ErrorCode.SYSTEM_ERROR, "退出队伍失败");
                 }
@@ -414,6 +420,7 @@ public class TeamServiceImpl extends ServiceImpl<TeamMapper, Team>
     }
 
     @Override
+    @Transactional
     public boolean userDeleteTeam(long teamId, User loginUser) {
         //1. 校验请求参数
         if(teamId<0) throw new BusinessException(ErrorCode.PARAMS_ERROR);
@@ -442,14 +449,14 @@ public class TeamServiceImpl extends ServiceImpl<TeamMapper, Team>
 
     @Override
     public TeamUserVo getTeamsById(Long teamId,long userId) {
-        Gson gson = new Gson();
         //1.从redis中获取缓存
-        String redisKey=TEAM_INFO_KEY+teamId;
-        Type type = new TypeToken<Team>() {}.getType();
-        Team team = redisCacheUtils.queryWithLock(redisKey, teamId, type, TEAM_TEAMID_LOCK, this::getById,
-                CACHE_COMMON_TTL, TimeUnit.MINUTES);
+//        Gson gson = new Gson();
+//        String redisKey=TEAM_INFO_KEY+teamId;
+//        Type type = new TypeToken<Team>() {}.getType();
+//        Team team = redisCacheUtils.queryWithLock(redisKey, teamId, type, TEAM_TEAMID_LOCK, this::getById,
+//                CACHE_COMMON_TTL, TimeUnit.MINUTES);
         //Mysql
-//        Team team = this.getById(teamId);
+        Team team = this.getById(teamId);
         //队伍不存在
         if(team==null) return new TeamUserVo();
         return packageTeamUserVo(team,userId);
@@ -490,8 +497,6 @@ public class TeamServiceImpl extends ServiceImpl<TeamMapper, Team>
         teamUserVo.setHasJoin(count != 0);
         return teamUserVo;
     }
-
-
 
 }
 

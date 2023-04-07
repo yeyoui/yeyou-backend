@@ -19,6 +19,8 @@ spring:
     port: 6379
     redissonDatabase: 2
     password: 123456
+  main:
+    allow-circular-references: true
 server:
   port: 8080
   servlet:

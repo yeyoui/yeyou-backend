@@ -2,6 +2,9 @@ package com.yeyou.yeyoubackend.controller;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.google.gson.Gson;
+
+import com.google.gson.reflect.TypeToken;
 import com.yeyou.yeyoubackend.common.BaseResponse;
 import com.yeyou.yeyoubackend.common.ErrorCode;
 import com.yeyou.yeyoubackend.common.ResultUtils;
@@ -9,22 +12,26 @@ import com.yeyou.yeyoubackend.exception.BusinessException;
 import com.yeyou.yeyoubackend.model.domain.User;
 import com.yeyou.yeyoubackend.model.request.UserLoginRequest;
 import com.yeyou.yeyoubackend.model.request.UserRegisterRequest;
+import com.yeyou.yeyoubackend.model.vo.MyPage;
+import com.yeyou.yeyoubackend.model.vo.UserVo;
 import com.yeyou.yeyoubackend.service.UserService;
+import com.yeyou.yeyoubackend.utils.StringRedisCacheUtils;
 import com.yeyou.yeyoubackend.utils.UserHold;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
-import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.data.redis.core.ValueOperations;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.util.CollectionUtils;
 import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
+import java.lang.reflect.Type;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import static com.yeyou.yeyoubackend.contant.RedisConstant.USER_RECOMMEND_KEY;
+import static com.yeyou.yeyoubackend.contant.RedisConstant.USER_RECOMMEND_LOCK;
 import static com.yeyou.yeyoubackend.contant.UserConstant.ADMIN_ROLE;
 import static com.yeyou.yeyoubackend.contant.UserConstant.USER_LOGIN_STATE;
 
@@ -35,9 +42,11 @@ import static com.yeyou.yeyoubackend.contant.UserConstant.USER_LOGIN_STATE;
 public class UserController {
 
     @Resource
-    private RedisTemplate<String,Object> redisTemplate;
+    private StringRedisTemplate stringRedisTemplate;
     @Resource
     private UserService userService;
+    @Resource
+    private StringRedisCacheUtils redisCacheUtils;
     @PostMapping("/register")
     public BaseResponse<Long> userRegister(@RequestBody UserRegisterRequest userRegisterRequest){
         if (userRegisterRequest == null) {
@@ -131,23 +140,13 @@ public class UserController {
 
     @GetMapping("/recommend")
     public BaseResponse<Page<User>> recommendUsers(long pageSize,long pageNum,HttpServletRequest request){
-        //获取当前用户
-        User loginUser = userService.getLoginUser(request);
-        ValueOperations<String, Object> stringOps = redisTemplate.opsForValue();
-        String redisKey=USER_RECOMMEND_KEY + loginUser.getId();
-        Page<User> userPage =(Page<User>) stringOps.get(redisKey);
-        if(userPage!=null){
-            //有缓存
-            return ResultUtils.success(userPage);
-        }
+        MyPage<User> queryPage = new MyPage<>(pageNum, pageSize);
+        Type retType = new TypeToken<MyPage<User>>(){}.getType();
+
+        Page<User> page =redisCacheUtils.queryWithLock(USER_RECOMMEND_KEY,queryPage,retType,USER_RECOMMEND_LOCK,
+                (userPage -> userService.page(userPage)),1,TimeUnit.MINUTES);
         //无缓存，重新获取数据
-        Page<User> page = userService.page(new Page<>(pageNum, pageSize));
-        //将缓存写入Redis中
-        try {
-            stringOps.set(redisKey,page,900, TimeUnit.MINUTES);
-        } catch (Exception e) {
-            log.error("redis set key error: ",e);
-        }
+//        Page<User> page = userService.page(new Page<>(pageNum, pageSize));
         return ResultUtils.success(page);
     }
 

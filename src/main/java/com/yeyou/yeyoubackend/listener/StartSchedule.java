@@ -39,5 +39,8 @@ public class StartSchedule implements ApplicationListener<org.springframework.co
         List<User> userAllTagList = userService.query().select("id", "tags").ne("tags","[]").list();
         redisCacheUtils.setWithLogicalExpire(RedisConstant.USER_ALL_USERTAGINFO_KEY+"ALL",
                 userAllTagList,1, TimeUnit.HOURS);
+        //初始化所有的用户ID和各自的标签
+        List<User> users = userService.query().ne("tags","[]").list();
+        redisCacheUtils.setWithLogicalExpire(RedisConstant.USER_ALL_USERTAGINFO_KEY,users,1,TimeUnit.HOURS);
     }
 }

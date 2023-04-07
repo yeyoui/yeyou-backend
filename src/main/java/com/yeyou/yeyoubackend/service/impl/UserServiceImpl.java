@@ -19,7 +19,9 @@ import jodd.util.StringUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
+import org.springframework.util.DigestUtils;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
@@ -89,13 +91,12 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>  implements U
         if(count>0){
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "编号重复");
         }
-//        String encryptPassword = DigestUtils.md5DigestAsHex((SALT + userPassword).getBytes());
-        String encryptPassword=userPassword;//暂时不加密
+        String encryptPassword = DigestUtils.md5DigestAsHex((SALT + userPassword).getBytes());//MD5盐值加密
+//        String encryptPassword=userPassword;//暂时不加密
         //新增用户
         User user = new User();
         user.setUserAccount(userAccount);
         user.setUserPassword(encryptPassword);
-//        user.setPlanetCode(planetCode);
         boolean saveResult = this.save(user);
         if (!saveResult) {
             return -1;
@@ -122,8 +123,8 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>  implements U
             return null;
         }
         // 2. 加密
-//        String encryptPassword = DigestUtils.md5DigestAsHex((SALT + userPassword).getBytes());
-        String encryptPassword = userPassword;
+        String encryptPassword = DigestUtils.md5DigestAsHex((SALT + userPassword).getBytes());
+//        String encryptPassword = userPassword;
         // 查询用户是否存在
         QueryWrapper<User> queryWrapper = new QueryWrapper<>();
         queryWrapper.eq("userAccount", userAccount);
@@ -189,7 +190,13 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>  implements U
         //内存查询(更灵活)
         Gson gson = new Gson();
         //先查询所有有标签用户
-        List<User> users = this.query().ne("tags","[]").list();
+        //逻辑过期（一小时）
+        List<User> users =redisCacheUtils.queryWithLogicalExpireNoParam(RedisConstant.USER_ALL_USERTAGINFO_KEY,
+                "ALL",
+                RedisConstant.USER_ALL_USERTAGINFO_LOCK,
+                ()-> this.query().ne("tags","[]").list(),
+                1, TimeUnit.HOURS);
+//        List<User> users = this.query().ne("tags","[]").list();
         return users.stream().filter((user -> {
             String tags = user.getTags();
             Set<String> tempTagsSet = gson.fromJson(tags, new TypeToken<Set<String>>() {}.getType());
@@ -206,6 +213,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>  implements U
      */
     @Override
     public User getLoginUser(HttpServletRequest request) {
+//        todo
 //        if(request==null){
 //            throw new BusinessException(ErrorCode.PARAMS_ERROR);
 //        }

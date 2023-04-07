@@ -206,12 +206,17 @@ public class TeamSeckillServiceImpl extends ServiceImpl<TeamSeckillMapper, TeamS
         //1.获取有效争夺状态的队伍ID
         Gson gson = new Gson();
         //Redis缓存
-
         Map<Object, Object> entries = redisTemplate.opsForHash().entries(RedisConstant.TEAMSECKILL_TEAMINFO_HASH);
         List<TeamUserSeckillVo> seckillVoCollect = entries.values()
                 .stream().map((valueJson) -> gson.fromJson((String) valueJson, TeamUserSeckillVo.class))
-                .filter((team) -> team.getEndTime().after(new Date()))
-                .collect(Collectors.toList());
+                .filter((team) -> {
+                    boolean noExpire = team.getEndTime().after(new Date());
+                    if(!noExpire){
+                        //清除过期的队伍信息
+                        redisTemplate.opsForHash().delete(RedisConstant.TEAMSECKILL_TEAMINFO_HASH,team.getId());
+                    }
+                    return noExpire;
+                }).collect(Collectors.toList());
 
         //Mysql
 //        List<TeamSeckill> teamSeckills = this.query().gt("endTime", new Date()).list();
@@ -244,7 +249,7 @@ public class TeamSeckillServiceImpl extends ServiceImpl<TeamSeckillMapper, TeamS
         if(new Date().before(teamSeckill.getBeginTime())){
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "秒杀未开始！");
         }
-        //3. 提前生成订单信息(后续使用类似雪花算法的方式生成)
+        //3. 提前生成订单信息(使用类似雪花算法的方式生成,时间戳+Redis自增值)
         long orderId = redisIdWorker.nextId(TEAMSECKILL_ORDERID_KEY);
         //4. 执行lua脚本，查询Redis缓存中查看用户是否下单，如果没下单就减去库存，并在redis中新增信息
         Long result = redisTemplate.execute(
@@ -317,6 +322,7 @@ public class TeamSeckillServiceImpl extends ServiceImpl<TeamSeckillMapper, TeamS
 
     @Transactional
     public boolean syncTeamSeckillResult(TeamSeckillSyncBo teamSeckillSyncBo){
+        if(teamSeckillSyncBo==null) return false;
         //更新队伍成员数量
         boolean result = teamService.update().setSql("memberNum=memberNum+1")
                 .eq("id", teamSeckillSyncBo.getTeamId()).update();
