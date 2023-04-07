@@ -62,10 +62,33 @@ public class TeamServiceImpl extends ServiceImpl<TeamMapper, Team>
     private RedissonClient redissonClient;
 
     @Override
-    public long addTeam(Team team, User loginUser) {
-        final long userId=loginUser.getId();
+    @Transactional
+    public long doAddTeam(Team team, long userId) {
+        //7.更新队伍表 and 更新队伍关系表
+        team.setUserId(userId);
+        //队长就是创建者
+        team.setLeaderId(userId);
+        team.setId(null);
+        boolean result = this.save(team);
+        if(!result || team.getId()==null){
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR,"创建队伍失败");
+        }
+        Long teamId = team.getId();
+        UserTeam userTeam = new UserTeam();
+        userTeam.setUserId(userId);
+        userTeam.setTeamId(teamId);
+        userTeam.setJoinTime(new Date());
+        result = userTeamService.save(userTeam);
+        if(!result || userTeam.getId()==null){
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR,"创建队伍失败");
+        }
+        return teamId;
+    }
+
+    public long checkNewTeamParam(Team team, User loginUser) {
+        final long userId= loginUser.getId();
         //0.请求参数为空
-        if(team==null) throw new BusinessException(ErrorCode.PARAMS_ERROR);
+        if(team ==null) throw new BusinessException(ErrorCode.PARAMS_ERROR);
         //1.队伍名称必须存在且小于20
         if(team.getName()==null || team.getName().length()>20){
             throw new BusinessException(ErrorCode.PARAMS_ERROR,"队伍名错误");
@@ -101,25 +124,7 @@ public class TeamServiceImpl extends ServiceImpl<TeamMapper, Team>
         if(count>=5){
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "用户最多创建 5 个队伍");
         }
-        //7.更新队伍表 and 更新队伍关系表
-        team.setUserId(userId);
-        //队长就是创建者
-        team.setLeaderId(userId);
-        team.setId(null);
-        boolean result = this.save(team);
-        if(!result || team.getId()==null){
-            throw new BusinessException(ErrorCode.SYSTEM_ERROR,"创建队伍失败");
-        }
-        Long teamId = team.getId();
-        UserTeam userTeam = new UserTeam();
-        userTeam.setUserId(userId);
-        userTeam.setTeamId(teamId);
-        userTeam.setJoinTime(new Date());
-        result = userTeamService.save(userTeam);
-        if(!result || userTeam.getId()==null){
-            throw new BusinessException(ErrorCode.SYSTEM_ERROR,"创建队伍失败");
-        }
-        return teamId;
+        return userId;
     }
 
     @Override

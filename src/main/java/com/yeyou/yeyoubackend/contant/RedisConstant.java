@@ -19,7 +19,11 @@ public interface RedisConstant {
     String TEAM_INFO_KEY="team:info:";
     String TEAM_TEAMID_LOCK="LockTeam:teamId:";
     long CACHE_COMMON_TTL=5;
+
+    String TEAMSECKILL_TEAMINFO_HASH="teamSeckill_teamHash";
     long CACHE_NULL_TTL=5;
+
+
 
 
 }

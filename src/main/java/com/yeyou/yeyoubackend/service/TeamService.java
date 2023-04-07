@@ -24,10 +24,10 @@ public interface TeamService extends IService<Team> {
     /**
      * 新增队伍
      * @param team
-     * @param loginUser
+     * @param userId
      * @return
      */
-    long addTeam(Team team, User loginUser);
+    long doAddTeam(Team team, long userId);
 
     /**
      * 显示所有指定的队伍
@@ -98,4 +98,12 @@ public interface TeamService extends IService<Team> {
      * @return
      */
     TeamUserVo getTeamsById(Long teamId,long userId);
+
+    /**
+     * 检查传入的参数
+     * @param team
+     * @param loginUser
+     * @return
+     */
+    long checkNewTeamParam(Team team, User loginUser);
 }

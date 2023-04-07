@@ -17,6 +17,7 @@ import com.yeyou.yeyoubackend.utils.StringRedisCacheUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.Resource;
 import java.util.ArrayList;
@@ -31,6 +32,7 @@ import java.util.stream.Collectors;
 @Service
 public class TagServiceImpl extends ServiceImpl<TagMapper, Tag> implements TagService{
     @Override
+    @Transactional
     public Long addTag(TagAddRequest tagAddRequest, User loginUser) {
         //1. 校验参数信息
         if(tagAddRequest==null || StringUtils.isEmpty(tagAddRequest.getTagName()))

@@ -40,13 +40,6 @@ public interface TeamSeckillService extends IService<TeamSeckill> {
     Boolean deleteSeckillByTeamId(TeamSeckillDelRequest teamSeckillDelRequest, User loginUser);
 
     /**
-     * 新增操作的时候发现队伍存在争夺队列中，当做更新操作处理
-     * @param teamSeckillRequest
-     * @param teamId
-     */
-    void shiftToUpdateSeckill(TeamSeckillRequest teamSeckillRequest,Long teamId);
-
-    /**
      * 获取争夺队列的所有队伍
      * @return
      */

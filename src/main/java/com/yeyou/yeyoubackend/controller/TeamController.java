@@ -44,7 +44,8 @@ public class TeamController {
         User loginUser = UserHold.get();
         Team team = new Team();
         BeanUtils.copyProperties(teamAddRequest,team);
-        long teamId = teamService.addTeam(team,loginUser);
+        long loginUserId = teamService.checkNewTeamParam(team, loginUser);
+        long teamId = teamService.doAddTeam(team,loginUserId);
         return ResultUtils.success(teamId);
     }
 

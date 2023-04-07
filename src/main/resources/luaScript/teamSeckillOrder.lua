@@ -25,6 +25,10 @@ local stockKey="teamSeckill:stock:" .. teamId
 local orderKey="teamSeckill:order" .. teamId
 
 --3.执行业务
+--无库存信息
+if(redis.call("exists",stockKey)==0) then
+    return 1;
+end
 --3.1库存是否充足
 if(tonumber(redis.call("get",stockKey))<=0) then
     -- 库存不足返回1

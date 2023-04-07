@@ -24,7 +24,8 @@ public class LearnIdGenerator {
     //初始化
     static {
         TEAMSECKILL_SCRIPT=new DefaultRedisScript<>();
-        TEAMSECKILL_SCRIPT.setLocation(new ClassPathResource("luaScript/CreateConsumerGroup.lua"));
+//        TEAMSECKILL_SCRIPT.setLocation(new ClassPathResource("luaScript/CreateConsumerGroup.lua"));
+        TEAMSECKILL_SCRIPT.setLocation(new ClassPathResource("luaScript/Test.lua"));
         TEAMSECKILL_SCRIPT.setResultType(Long.class);
     }
 
@@ -52,5 +53,6 @@ public class LearnIdGenerator {
     @Test
     public void testCreateConsumerGroup(){
         System.out.println(redisTemplate.execute(TEAMSECKILL_SCRIPT, Collections.emptyList(), ""));
+
     }
 }

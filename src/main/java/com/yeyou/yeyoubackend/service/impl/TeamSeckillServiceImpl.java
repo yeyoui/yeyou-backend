@@ -1,8 +1,11 @@
 package com.yeyou.yeyoubackend.service.impl;
 
 import cn.hutool.core.bean.BeanUtil;
+import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.google.gson.Gson;
 import com.yeyou.yeyoubackend.common.ErrorCode;
+import com.yeyou.yeyoubackend.contant.RedisConstant;
 import com.yeyou.yeyoubackend.exception.BusinessException;
 import com.yeyou.yeyoubackend.mapper.TeamSeckillMapper;
 import com.yeyou.yeyoubackend.model.bo.TeamSeckillSyncBo;
@@ -29,6 +32,7 @@ import org.springframework.transaction.annotation.Transactional;
 import javax.annotation.PostConstruct;
 import javax.annotation.Resource;
 import java.time.Duration;
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.stream.Collectors;
@@ -147,8 +151,7 @@ public class TeamSeckillServiceImpl extends ServiceImpl<TeamSeckillMapper, TeamS
         Long count = this.query().eq("teamId", teamId).count();
         if(count!=0){
             //新增操作的时候发现队伍存在争夺队列中，当做更新操作处理
-            shiftToUpdateSeckill(teamSeckillRequest,teamId);
-            return teamId;
+            return updateSeckill(teamSeckillRequest,loginUser);
         }
         //新增队伍到争夺列表
         TeamSeckill teamSeckill = new TeamSeckill();
@@ -158,61 +161,77 @@ public class TeamSeckillServiceImpl extends ServiceImpl<TeamSeckillMapper, TeamS
         //修改队伍状态为争夺状态
         result = teamService.update().set("status", 3).eq("id", teamId).update();
         if(!result) throw new BusinessException(ErrorCode.SYSTEM_ERROR);
+
         //将争夺信息和队伍加入Redis缓存中
         String redisKey=TEAMSECKILL_INFO_KEY+teamId;
         redisTemplate.opsForValue().set(redisKey,teamSeckillRequest.getJoinNum().toString());
         //设置过期时间为结束时间
         redisTemplate.expireAt(redisKey, teamSeckillRequest.getEndTime());
+        //缓存队伍信息
+        Gson gson = new Gson();
+        TeamUserSeckillVo teamUserSeckillVo = packageOneTeamUserSeckillVo(teamSeckill, loginUser.getId());
+        redisTemplate.opsForHash().put(RedisConstant.TEAMSECKILL_TEAMINFO_HASH,teamId.toString(),gson.toJson(teamUserSeckillVo));
         return teamId;
     }
 
     @Override
+    @Transactional
     public Long updateSeckill(TeamSeckillRequest teamSeckillRequest, User loginUser) {
         Long teamId = checkTeamSeckillRequest(teamSeckillRequest, loginUser);
         //队伍已必须在争夺队列
-        TeamSeckill teamSeckill1 = this.query().select("id").eq("teamId", teamId).one();
-        if(teamSeckill1==null) throw new BusinessException(ErrorCode.PARAMS_ERROR, "队伍不存在争夺队列中");
-        //修改争夺列表的队伍
-        TeamSeckill teamSeckill = new TeamSeckill();
-        BeanUtils.copyProperties(teamSeckillRequest,teamSeckill);
-        teamSeckill.setId(teamSeckill1.getId());
-        boolean result = this.updateById(teamSeckill);
-        if(!result) throw new BusinessException(ErrorCode.SYSTEM_ERROR);
-        return teamId;
-    }
-
-    @Override
-    public void shiftToUpdateSeckill(TeamSeckillRequest teamSeckillRequest,Long teamId){
-        //修改争夺列表的队伍
         TeamSeckill teamSeckill = this.query().select("id").eq("teamId", teamId).one();
+        if(teamSeckill==null) throw new BusinessException(ErrorCode.PARAMS_ERROR, "队伍不存在争夺队列中");
+        //修改争夺列表的队伍
         BeanUtils.copyProperties(teamSeckillRequest,teamSeckill);
         teamSeckill.setId(teamSeckill.getId());
+
+//        UpdateWrapper<TeamSeckill> teamSeckillUpdateWrapper = new UpdateWrapper<>();
+//        teamSeckillUpdateWrapper.eq("teamId", teamId)
+//                .set("joinNum",teamSeckill.getJoinNum())
+//                .set("beginTime",teamSeckill.getBeginTime())
+//                .set("endTime",teamSeckill.getEndTime());
         boolean result = this.updateById(teamSeckill);
         if(!result) throw new BusinessException(ErrorCode.SYSTEM_ERROR);
-        //更新Redis中的缓存
-        //将争夺信息和队伍更新Redis缓存中
-        String redisKey=TEAMSECKILL_INFO_KEY+teamId;
-        redisTemplate.opsForValue().set(redisKey,teamSeckillRequest.getJoinNum().toString());
-        //设置过期时间为结束时间
-        redisTemplate.expireAt(redisKey, teamSeckillRequest.getEndTime());
+        //更新Redis缓存
+        //更新后的TeamSeckill信息
+        Gson gson = new Gson();
+        TeamUserSeckillVo teamUserSeckillVo = packageOneTeamUserSeckillVo(teamSeckill, loginUser.getId());
+        redisTemplate.opsForHash().put(RedisConstant.TEAMSECKILL_TEAMINFO_HASH,teamId.toString(),gson.toJson(teamUserSeckillVo,TeamUserSeckillVo.class));
+
+        return teamId;
     }
 
     @Override
     public List<TeamUserSeckillVo> listAll(User loginUser) {
         //1.获取有效争夺状态的队伍ID
-        List<TeamSeckill> teamSeckills = this.query().gt("endTime", new Date()).list();
-        if(teamSeckills==null) return new ArrayList<>();
-        List<TeamUserSeckillVo> seckillVoCollect = teamSeckills.stream().map((teamSeckill -> {
-            TeamUserSeckillVo seckillVo = new TeamUserSeckillVo();
-            //2通过队伍ID查询详细信息（可用Redis缓存）
-            TeamUserVo teamUserVo = teamService.getTeamsById(teamSeckill.getTeamId(), loginUser.getId());
-            BeanUtils.copyProperties(teamUserVo, seckillVo);
-            seckillVo.setJoinNum(teamSeckill.getJoinNum());
-            seckillVo.setBeginTime(teamSeckill.getBeginTime());
-            seckillVo.setEndTime(teamSeckill.getEndTime());
-            return seckillVo;
-        })).collect(Collectors.toList());
+        Gson gson = new Gson();
+        //Redis缓存
+
+        Map<Object, Object> entries = redisTemplate.opsForHash().entries(RedisConstant.TEAMSECKILL_TEAMINFO_HASH);
+        List<TeamUserSeckillVo> seckillVoCollect = entries.values()
+                .stream().map((valueJson) -> gson.fromJson((String) valueJson, TeamUserSeckillVo.class))
+                .filter((team) -> team.getEndTime().after(new Date()))
+                .collect(Collectors.toList());
+
+        //Mysql
+//        List<TeamSeckill> teamSeckills = this.query().gt("endTime", new Date()).list();
+//        if(teamSeckills==null) return new ArrayList<>();
+//        List<TeamUserSeckillVo> seckillVoCollect = teamSeckills.stream().map((teamSeckill ->
+//                packageOneTeamUserSeckillVo(teamSeckill, loginUser.getId()))).collect(Collectors.toList());
+
         return seckillVoCollect;
+    }
+
+    private TeamUserSeckillVo packageOneTeamUserSeckillVo(TeamSeckill teamSeckill,long loginUserId){
+        TeamUserSeckillVo seckillVo = new TeamUserSeckillVo();
+        //2通过队伍ID查询详细信息（可用Redis缓存）
+        TeamUserVo teamUserVo = teamService.getTeamsById(teamSeckill.getTeamId(), loginUserId);
+//            TeamUserVo teamUserVo = teamService.getTeamsById(teamSeckill.getTeamId(), 1);//测试用
+        BeanUtils.copyProperties(teamUserVo, seckillVo);
+        seckillVo.setJoinNum(teamSeckill.getJoinNum());
+        seckillVo.setBeginTime(teamSeckill.getBeginTime());
+        seckillVo.setEndTime(teamSeckill.getEndTime());
+        return seckillVo;
     }
 
     @Override
@@ -244,6 +263,7 @@ public class TeamSeckillServiceImpl extends ServiceImpl<TeamSeckillMapper, TeamS
     }
 
     @Override
+    @Transactional
     public Boolean deleteSeckillByTeamId(TeamSeckillDelRequest teamSeckillDelRequest, User loginUser) {
         //1. 检查参数
         if(teamSeckillDelRequest==null || teamSeckillDelRequest.getTeamId()==null ||
@@ -265,7 +285,8 @@ public class TeamSeckillServiceImpl extends ServiceImpl<TeamSeckillMapper, TeamS
         boolean result = teamService.update().set("status", status).eq("id", teamId).update();
         if(!result) throw new BusinessException(ErrorCode.SYSTEM_ERROR);
         //删除Redis中的缓存
-        return redisTemplate.delete(TEAMSECKILL_INFO_KEY + teamId);
+        redisTemplate.opsForHash().delete(RedisConstant.TEAMSECKILL_TEAMINFO_HASH, teamId.toString());
+        return true;
     }
 
     private Long checkTeamSeckillRequest(TeamSeckillRequest teamSeckillRequest, User loginUser) {
