@@ -322,7 +322,7 @@ public class TeamSeckillServiceImpl extends ServiceImpl<TeamSeckillMapper, TeamS
 
     @Transactional
     public boolean syncTeamSeckillResult(TeamSeckillSyncBo teamSeckillSyncBo){
-        if(teamSeckillSyncBo==null) return false;
+        if(teamSeckillSyncBo==null || teamSeckillSyncBo.getTeamId()==null) return false;
         //更新队伍成员数量
         boolean result = teamService.update().setSql("memberNum=memberNum+1")
                 .eq("id", teamSeckillSyncBo.getTeamId()).update();

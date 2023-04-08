@@ -196,6 +196,8 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>  implements U
                 RedisConstant.USER_ALL_USERTAGINFO_LOCK,
                 ()-> this.query().ne("tags","[]").list(),
                 1, TimeUnit.HOURS);
+        String json = gson.toJson(users);
+        users=gson.fromJson(json,new TypeToken<List<User>>(){}.getType());
 //        List<User> users = this.query().ne("tags","[]").list();
         return users.stream().filter((user -> {
             String tags = user.getTags();
@@ -213,16 +215,14 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>  implements U
      */
     @Override
     public User getLoginUser(HttpServletRequest request) {
-//        todo
-//        if(request==null){
-//            throw new BusinessException(ErrorCode.PARAMS_ERROR);
-//        }
-//        Object curUser = request.getSession().getAttribute(USER_LOGIN_STATE);
-//        if(curUser==null){
-//            throw new BusinessException(ErrorCode.NOT_LOGIN);
-//        }
-//        return (User) curUser;
-        return this.getById(1);
+        if(request==null){
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+        }
+        Object curUser = request.getSession().getAttribute(USER_LOGIN_STATE);
+        if(curUser==null){
+            throw new BusinessException(ErrorCode.NOT_LOGIN);
+        }
+        return (User) curUser;
     }
 
     /**

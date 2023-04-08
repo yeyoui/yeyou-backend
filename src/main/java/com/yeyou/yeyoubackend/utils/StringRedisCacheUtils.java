@@ -126,6 +126,62 @@ public class StringRedisCacheUtils{
         //6.返回结果
         return result;
     }
+
+    /**
+     * 带有锁的更新缓存(其他线程等待第一个获取锁的线程更新缓存，然后直接获取缓存返回)
+     * @param keyPrefix key前缀
+     * @param type 返回值的类型
+     * @param id id
+     * @param lockKey 加锁的对象名
+     * @param dbCallback 如果缓存失效，获取最新值的回调（无参）
+     * @param time 如果缓存失效，新的逻辑过期时间
+     * @param timeUnit 时间单位
+     * @return 结果
+     * @param <R> 回调函数的结果类型
+     */
+    public <R,ID> R queryWithLockNoParam(String keyPrefix, String id, Type type, String lockKey,Supplier<R> dbCallback,
+                                  long time, TimeUnit timeUnit){
+        String key=keyPrefix+id;
+        //1.先查询缓存是否存在
+        String json = redisTemplate.opsForValue().get(key);
+        //2.缓存存在直接返回
+        if(StringUtils.isNotBlank(json)){
+            return gson.fromJson(json, type);
+        }
+        //3.缓存是空字符串，打印日志返回null
+        if(json!=null){
+            log.info("查询{}的缓存为空.",key);
+            return null;
+        }
+        //4.缓存不存在，执行dbCallback获取数据
+        RLock rLock = redissonClient.getLock(lockKey);
+        if(!rLock.tryLock()){
+            try {
+                while (!rLock.tryLock(5,-1,TimeUnit.SECONDS)){
+                    ;//未获取到锁自旋等待
+                }
+                //解锁
+                rLock.unlock();
+                //之前的进程已经完成缓存更新
+                return queryWithLockNoParam(keyPrefix,id,type,lockKey,dbCallback,time,timeUnit);
+            } catch (InterruptedException e) {
+                log.error("获取{}锁时出现中断->直接返回null",lockKey);
+                return null;
+            }
+        }
+        //当前进程获取到分布式锁了
+        R result=dbCallback.get();
+        if(result==null){
+            //数据库无该数据(空字符串缓存5分钟)
+            this.set(key,"", RedisConstant.CACHE_NULL_TTL,TimeUnit.SECONDS);
+        }
+        //5.将数据写入缓存
+        this.set(key,result, time,timeUnit);
+        //解锁
+        rLock.unlock();
+        //6.返回结果
+        return result;
+    }
     /**
      * 逻辑过期（如果认定缓存过期，那么获取到锁的线程开启新线程更新缓存，并且返回旧值）
      * @param keyPrefix key前缀

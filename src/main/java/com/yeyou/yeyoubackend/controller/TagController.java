@@ -1,5 +1,6 @@
 package com.yeyou.yeyoubackend.controller;
 
+import com.google.gson.reflect.TypeToken;
 import com.yeyou.yeyoubackend.common.BaseResponse;
 import com.yeyou.yeyoubackend.common.ErrorCode;
 import com.yeyou.yeyoubackend.common.ResultUtils;
@@ -17,6 +18,7 @@ import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
+import java.lang.reflect.Type;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -38,23 +40,27 @@ public class TagController {
         if(tagAddRequest==null) throw new BusinessException(ErrorCode.PARAMS_ERROR);
         User loginUser = userService.getLoginUser(request);
         Long success = tagService.addTag(tagAddRequest, loginUser);
+        //2.清除缓存
+        redisCacheUtils.removeCache(RedisConstant.TAG_ALL_LIST_KEY+"ALL");
         return ResultUtils.success(success);
     }
 
     @GetMapping("/list")
     public BaseResponse<List<TagListDto>> list(){
-        //逻辑过期缓存（1分钟更新一次）
-        List<TagListDto> tagList = redisCacheUtils.queryWithLogicalExpireNoParam(RedisConstant.TAG_ALL_LIST_KEY, "ALL",
-                RedisConstant.TAG_ALL_LIST_LOCK + "ALL", tagService::listAll, 1, TimeUnit.MINUTES);
+        //缓存（1小时过期一次）
+        Type type = new TypeToken<List<TagListDto>>(){}.getType();
+        List<TagListDto> tagList = redisCacheUtils.queryWithLockNoParam(RedisConstant.TAG_ALL_LIST_KEY, "ALL",type,
+                RedisConstant.TAG_ALL_LIST_LOCK + "ALL", tagService::listAll, 10, TimeUnit.SECONDS);
 //        List<TagListDto> tagList=tagService.listAll();
         return ResultUtils.success(tagList);
     }
 
     @GetMapping("/parentList")
     public BaseResponse<List<ParentDto>> parentList(){
-        //逻辑过期缓存(1小时更新一次
-        List<ParentDto> tagList = redisCacheUtils.queryWithLogicalExpireNoParam(RedisConstant.TAG_PARENT_LIST_KEY, "ALL",
-                RedisConstant.TAG_PARENT_LIST_LOCK + "ALL", tagService::listAllParent, 1, TimeUnit.HOURS);
+        //逻辑过期缓存（10秒钟过期一次）
+        Type type = new TypeToken<List<ParentDto> >(){}.getType();
+        List<ParentDto> tagList = redisCacheUtils.queryWithLockNoParam(RedisConstant.TAG_PARENT_LIST_KEY, "ALL",type,
+                RedisConstant.TAG_PARENT_LIST_LOCK + "ALL", tagService::listAllParent, 10, TimeUnit.SECONDS);
 //        List<ParentDto> tagList=tagService.listAllParent();
         return ResultUtils.success(tagList);
     }

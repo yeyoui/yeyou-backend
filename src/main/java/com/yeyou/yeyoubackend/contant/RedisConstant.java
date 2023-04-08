@@ -12,8 +12,8 @@ public interface RedisConstant {
     String TAG_PARENT_LIST_LOCK="Locktag:parentList:";
     String TAG_ALL_LIST_LOCK="Locktag:AllListLock:";
 
-    String USER_USERINFO_ONLY_UID_TAGS_KEY="userInfo:UidAndTags:";
-    String USER_USERINFO_ONLY_UID_TAGS_LOCK="LockUserInfo:UidAndTags:";
+    String USER_ALLUSERINFO_KEY ="userInfo:allUser:all";
+    String USER_USERINFO_ONLY_UID_TAGS_LOCK="LockUserInfo:allUser:";
     String USER_ALL_USERTAGINFO_KEY="UserTag:userTag:";
     String USER_ALL_USERTAGINFO_LOCK="LockUserTag:userTag:";
     String USERVO_TEAMID_KEY="userVo:teamId:";
@@ -25,8 +25,6 @@ public interface RedisConstant {
 
     String TEAMSECKILL_TEAMINFO_HASH="teamSeckill_teamHash";
     long CACHE_NULL_TTL=5;
-
-
 
 
 }

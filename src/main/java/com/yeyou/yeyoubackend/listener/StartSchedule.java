@@ -28,19 +28,19 @@ public class StartSchedule implements ApplicationListener<org.springframework.co
     @Override
     public void onApplicationEvent(ContextRefreshedEvent event) {
         //初始化队伍缓存
-        //初始化父标签列表（逻辑过期）
+        //初始化父标签列表（过期）
         List<ParentDto> parentDtoList = tagService.listAllParent();
-        redisCacheUtils.setWithLogicalExpire(RedisConstant.TAG_PARENT_LIST_KEY+"ALL",parentDtoList,1, TimeUnit.HOURS);
-        //初始化所有标签（逻辑过期）
+        redisCacheUtils.set(RedisConstant.TAG_PARENT_LIST_KEY+"ALL",parentDtoList,1, TimeUnit.HOURS);
+        //初始化所有标签（过期）
         List<TagListDto> tagList = tagService.listAll();
-        redisCacheUtils.setWithLogicalExpire(RedisConstant.TAG_ALL_LIST_KEY+"ALL",tagList,1, TimeUnit.MINUTES);
+        redisCacheUtils.set(RedisConstant.TAG_ALL_LIST_KEY+"ALL",tagList,1, TimeUnit.HOURS);
         //初始化用户标签（big）
         //初始化所有用户标签
         List<User> userAllTagList = userService.query().select("id", "tags").ne("tags","[]").list();
         redisCacheUtils.setWithLogicalExpire(RedisConstant.USER_ALL_USERTAGINFO_KEY+"ALL",
                 userAllTagList,1, TimeUnit.HOURS);
-        //初始化所有的用户ID和各自的标签
+        //初始化所有的用户信息
         List<User> users = userService.query().ne("tags","[]").list();
-        redisCacheUtils.setWithLogicalExpire(RedisConstant.USER_ALL_USERTAGINFO_KEY,users,1,TimeUnit.HOURS);
+        redisCacheUtils.setWithLogicalExpire(RedisConstant.USER_ALLUSERINFO_KEY,users,1,TimeUnit.HOURS);
     }
 }
