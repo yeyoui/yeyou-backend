@@ -18,6 +18,10 @@ public class ResultUtils {
         return new BaseResponse<>(0, data, "ok");
     }
 
+    public static <T> BaseResponse<T> loginSuccess(T data,String token) {
+        return new BaseResponse<>(0, data, token);
+    }
+
     /**
      * 失败
      *

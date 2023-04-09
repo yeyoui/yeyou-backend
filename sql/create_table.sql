@@ -27,7 +27,7 @@ create table user
 ) comment '用户';
 
 -- 队伍表
-drop table team;
+drop table if exists team;
 create table team
 (
     id          bigint auto_increment comment 'id' primary key,
@@ -46,6 +46,7 @@ create table team
 ) comment '队伍';
 
 -- 用户队伍关系
+drop table if exists user_team;
 create table user_team
 (
     id         bigint auto_increment comment 'id'
@@ -82,7 +83,7 @@ create table tag
     isParent   tinyint null comment '0 - 不是, 1 - 父标签',
     createTime datetime default CURRENT_TIMESTAMP null comment '创建时间',
     updateTime datetime default CURRENT_TIMESTAMP null on update CURRENT_TIMESTAMP,
-    isDelete   tinyint  default 0 not null comment '是否删除',
+    isDelete   tinyint  default 0 not null comment '是否删除'
 #     constraint uniIdx_tagName
 #         unique (tagName)
 ) comment '标签';

@@ -20,11 +20,6 @@ class YeyoubackendApplicationTests {
     private RedisTemplate<String,Object> redisTemplate;
 
     @Test
-    void addUser() {
-        System.out.println(userService.userRegister("lhy123", "12345678", "12345678", "1"));
-    }
-
-    @Test
     public void testSearchUserByTags(){
         List<String> tags = Arrays.asList("java", "python");
         List<User> userList = userService.searchUsersByTags(tags);

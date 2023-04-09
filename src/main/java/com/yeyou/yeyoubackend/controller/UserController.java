@@ -1,5 +1,6 @@
 package com.yeyou.yeyoubackend.controller;
 
+import cn.hutool.core.lang.UUID;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.google.gson.Gson;
@@ -8,6 +9,7 @@ import com.google.gson.reflect.TypeToken;
 import com.yeyou.yeyoubackend.common.BaseResponse;
 import com.yeyou.yeyoubackend.common.ErrorCode;
 import com.yeyou.yeyoubackend.common.ResultUtils;
+import com.yeyou.yeyoubackend.contant.RedisConstant;
 import com.yeyou.yeyoubackend.exception.BusinessException;
 import com.yeyou.yeyoubackend.model.domain.User;
 import com.yeyou.yeyoubackend.model.request.UserLoginRequest;
@@ -56,16 +58,15 @@ public class UserController {
         String userAccount = userRegisterRequest.getUserAccount();
         String userPassword = userRegisterRequest.getUserPassword();
         String checkPassword = userRegisterRequest.getCheckPassword();
-        String planetCode = userRegisterRequest.getPlanetCode();
-        if (StringUtils.isAnyBlank(userAccount, userPassword, checkPassword, planetCode)) {
+        if (StringUtils.isAnyBlank(userAccount, userPassword, checkPassword)) {
             return null;
         }
-        long result = userService.userRegister(userAccount, userPassword, checkPassword, planetCode);
+        long result = userService.userRegister(userAccount, userPassword, checkPassword);
         return ResultUtils.success(result);
     }
 
     @PostMapping("/login")
-    public BaseResponse<User> userLogin(@RequestBody UserLoginRequest userLoginRequest, HttpServletRequest request) {
+    public BaseResponse userLogin(@RequestBody UserLoginRequest userLoginRequest, HttpServletRequest request) {
         if (userLoginRequest == null) {
             return ResultUtils.error(ErrorCode.PARAMS_ERROR);
         }
@@ -75,7 +76,11 @@ public class UserController {
             return ResultUtils.error(ErrorCode.PARAMS_ERROR);
         }
         User user = userService.userLogin(userAccount, userPassword, request);
-        return ResultUtils.success(user);
+        if(user==null) return ResultUtils.error(ErrorCode.NOT_LOGIN, "账号或密码错误");
+        String token = UUID.randomUUID().toString();
+        Gson gson = new Gson();
+        stringRedisTemplate.opsForValue().set(RedisConstant.USER_TOKEN_KEY+token,gson.toJson(user));
+        return ResultUtils.loginSuccess(user,token);
     }
 
     @PostMapping("/logout")

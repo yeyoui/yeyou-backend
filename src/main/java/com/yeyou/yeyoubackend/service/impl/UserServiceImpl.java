@@ -13,6 +13,7 @@ import com.yeyou.yeyoubackend.model.domain.User;
 import com.yeyou.yeyoubackend.mapper.UserMapper;
 import com.yeyou.yeyoubackend.service.UserService;
 import com.yeyou.yeyoubackend.utils.AlgorithmUtils;
+import com.yeyou.yeyoubackend.utils.RedisIdWorker;
 import com.yeyou.yeyoubackend.utils.StringRedisCacheUtils;
 import javafx.util.Pair;
 import jodd.util.StringUtil;
@@ -47,15 +48,17 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>  implements U
     private UserMapper userMapper;
     @Resource
     private StringRedisCacheUtils redisCacheUtils;
+    @Resource
+    private RedisIdWorker redisIdWorker;
 
     /**
      * 盐值
      */
     private static final String SALT = "yeyoui";
     @Override
-    public long userRegister(String userAccount, String userPassword, String checkPassword, String userCode) {
+    public long userRegister(String userAccount, String userPassword, String checkPassword) {
         //1.校验
-        if (StringUtils.isAnyBlank(userAccount, userPassword, checkPassword, userCode)) {
+        if (StringUtils.isAnyBlank(userAccount, userPassword, checkPassword)) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "参数为空");
         }
         if(userAccount.length()<4){
@@ -63,9 +66,6 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>  implements U
         }
         if (userPassword.length() < 8 || checkPassword.length() < 8) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "用户密码过短");
-        }
-        if (userCode.length() > 5) {
-            throw new BusinessException(ErrorCode.PARAMS_ERROR, "用户编号过长");
         }
         // 账户不能包含特殊字符
         String validPattern = "[`~!@#$%^&*()+=|{}':;',\\\\[\\\\].<>/?~！@#￥%……&*（）——+|{}【】‘；：”“’。，、？]";
@@ -84,19 +84,19 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>  implements U
         if (count > 0) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "账号重复");
         }
-        //用户编号不能重复
-        queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("userCode",userCode);
-        count = userMapper.selectCount(queryWrapper);
-        if(count>0){
-            throw new BusinessException(ErrorCode.PARAMS_ERROR, "编号重复");
-        }
+
         String encryptPassword = DigestUtils.md5DigestAsHex((SALT + userPassword).getBytes());//MD5盐值加密
 //        String encryptPassword=userPassword;//暂时不加密
         //新增用户
         User user = new User();
         user.setUserAccount(userAccount);
         user.setUserPassword(encryptPassword);
+        //默认角色
+        user.setUserRole(UserConstant.DEFAULT_ROLE);
+        //设置用户编号
+        String uid = String.valueOf(redisIdWorker.nextInc("UID"));
+        user.setUserCode(uid);
+        user.setUsername("User"+uid);
         boolean saveResult = this.save(user);
         if (!saveResult) {
             return -1;
@@ -138,7 +138,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>  implements U
         // 3. 用户脱敏
         User safetyUser = getSafetyUser(user);
         // 4. 记录用户的登录态
-        request.getSession().setAttribute(USER_LOGIN_STATE, safetyUser);
+//        request.getSession().setAttribute(USER_LOGIN_STATE, safetyUser);
         return safetyUser;
     }
 
@@ -273,7 +273,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>  implements U
         List<User> userList =redisCacheUtils.queryWithLogicalExpireNoParam(RedisConstant.USER_ALL_USERTAGINFO_KEY,
                 "ALL",
                 RedisConstant.USER_ALL_USERTAGINFO_LOCK,
-                ()-> this.query().select("id","tags").ne("tags","[]").list(),
+                ()-> this.query().select("id","tags").isNotNull("tags").list(),
                 1, TimeUnit.HOURS);
 //        List<User> userList = this.query().select("id","tags").ne("tags","[]").list();
 
@@ -299,10 +299,11 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>  implements U
                 .map(Pair::getValue)
                 .collect(Collectors.toList());
         //查询用户详细信息
+        if(mathUserRankIds.isEmpty()) return new ArrayList<>();
         String idStr = StrUtil.join(",", mathUserRankIds);
-        List<User> users = this.query().in("id", mathUserRankIds).last("ORDER BY FIELD (id," + idStr + ")").list();
-        users = users.stream().map(this::getSafetyUser).collect(Collectors.toList());
-        return users;
+        List<User> matchList = this.query().in("id", mathUserRankIds).last("ORDER BY FIELD (id," + idStr + ")").list();
+        matchList = matchList.stream().map(this::getSafetyUser).collect(Collectors.toList());
+        return matchList;
     }
 
     @Override

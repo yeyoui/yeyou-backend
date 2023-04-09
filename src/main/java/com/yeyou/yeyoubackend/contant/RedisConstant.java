@@ -24,6 +24,7 @@ public interface RedisConstant {
     long CACHE_COMMON_TTL=5;
 
     String TEAMSECKILL_TEAMINFO_HASH="teamSeckill_teamHash";
+    String USER_TOKEN_KEY = "user_token_key:";
     long CACHE_NULL_TTL=5;
 
 

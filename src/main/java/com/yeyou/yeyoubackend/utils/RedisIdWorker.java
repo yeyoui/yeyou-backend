@@ -31,4 +31,14 @@ public class RedisIdWorker {
         long increment = stringRedisTemplate.opsForValue().increment("incr:" + keyPrefix + date);
         return timeStamp<<COUNT_BITS | increment;
     }
+
+    public long nextInc(String keyPrefix){
+        LocalDateTime now = LocalDateTime.now();
+        long nowSecond = now.toEpochSecond(ZoneOffset.UTC);
+        //Redis用(每天的订单都重新计算)
+        String date = now.format(DateTimeFormatter.ofPattern("yyyy:MM:dd"));
+        @SuppressWarnings("ConstantConditions")
+        long increment = stringRedisTemplate.opsForValue().increment("incr:" + keyPrefix + date);
+        return increment;
+    }
 }

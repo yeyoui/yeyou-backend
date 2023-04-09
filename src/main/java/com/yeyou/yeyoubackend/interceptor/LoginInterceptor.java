@@ -14,6 +14,9 @@ import javax.servlet.http.HttpServletResponse;
 public class LoginInterceptor implements HandlerInterceptor {
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
+        if(request.getMethod().equalsIgnoreCase("OPTIONS")){
+            return true;//通过所有OPTION请求
+        }
         User user = UserHold.get();
         if(user==null) throw new BusinessException(ErrorCode.NOT_LOGIN);
         return true;

@@ -76,8 +76,8 @@ public class TeamSeckillServiceImpl extends ServiceImpl<TeamSeckillMapper, TeamS
     }
 
     private class TeamSeckillOrderHandler implements Runnable{
-        //每次最多等待59秒后进入下一次循环
-        private static final long waitTime = 1 * 60 * 1000 -1000;
+        //每次最多等待30秒后进入下一次循环
+        private static final long waitTime = 300 * 60 * 1000;
         private static final String GROUP_KEY="stream.teamSeckillOrder";
         private static final String GROUP_NAME="TeamSeckillC1";
         private final String threadName = Thread.currentThread().getName();
@@ -91,6 +91,10 @@ public class TeamSeckillServiceImpl extends ServiceImpl<TeamSeckillMapper, TeamS
                             StreamReadOptions.empty().count(1).block(Duration.ofMillis(waitTime)),
                             StreamOffset.create(GROUP_KEY, ReadOffset.lastConsumed())
                     );
+                    if (mapRecordList==null || mapRecordList.isEmpty()) {
+                        log.error("mapRecordList==null ");
+                        Thread.sleep(1000*5);
+                    }
                     //没有消息要处理
                     if(mapRecordList==null || mapRecordList.isEmpty()) continue;
                     //2.处理要获取的消息
@@ -119,6 +123,9 @@ public class TeamSeckillServiceImpl extends ServiceImpl<TeamSeckillMapper, TeamS
                             StreamReadOptions.empty().count(1).block(Duration.ofMillis(waitTime)),
                             StreamOffset.create(GROUP_KEY, ReadOffset.from("0"))
                     );
+                    if (mapRecordList==null || mapRecordList.isEmpty()) {
+                        Thread.sleep(1000*5);
+                    }
                     //没有消息要处理
                     if(mapRecordList==null || mapRecordList.isEmpty()) break;
                     //2.处理要获取的消息
@@ -183,8 +190,7 @@ public class TeamSeckillServiceImpl extends ServiceImpl<TeamSeckillMapper, TeamS
         if(teamSeckill==null) throw new BusinessException(ErrorCode.PARAMS_ERROR, "队伍不存在争夺队列中");
         //修改争夺列表的队伍
         BeanUtils.copyProperties(teamSeckillRequest,teamSeckill);
-        teamSeckill.setId(teamSeckill.getId());
-
+//        teamSeckill.setId(teamSeckill.getId());
 //        UpdateWrapper<TeamSeckill> teamSeckillUpdateWrapper = new UpdateWrapper<>();
 //        teamSeckillUpdateWrapper.eq("teamId", teamId)
 //                .set("joinNum",teamSeckill.getJoinNum())
@@ -322,7 +328,10 @@ public class TeamSeckillServiceImpl extends ServiceImpl<TeamSeckillMapper, TeamS
 
     @Transactional
     public boolean syncTeamSeckillResult(TeamSeckillSyncBo teamSeckillSyncBo){
-        if(teamSeckillSyncBo==null || teamSeckillSyncBo.getTeamId()==null) return false;
+        if(teamSeckillSyncBo==null || teamSeckillSyncBo.getTeamId()==null) {
+            log.error("teamSeckillSyncBo==null");
+            return false;
+        }
         //更新队伍成员数量
         boolean result = teamService.update().setSql("memberNum=memberNum+1")
                 .eq("id", teamSeckillSyncBo.getTeamId()).update();

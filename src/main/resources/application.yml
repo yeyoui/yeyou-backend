@@ -17,8 +17,11 @@ spring:
     database: 0
     host: 127.0.0.1
     port: 6379
-    redissonDatabase: 2
+    redissonDatabase: 10
     password: 123456
+    jedis:
+      pool:
+        max-wait: 60000
   main:
     allow-circular-references: true
 server:

@@ -15,5 +15,5 @@ public class UserRegisterRequest {
 
     private String checkPassword;
 
-    private String planetCode;
+    private String code;
 }
