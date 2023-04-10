@@ -39,7 +39,7 @@ import static com.yeyou.yeyoubackend.contant.UserConstant.USER_LOGIN_STATE;
 
 @RestController
 @RequestMapping("/user")
-@CrossOrigin(origins = {"http://localhost:3000"})
+//@CrossOrigin(origins = {"http://localhost:3000"})
 @Slf4j
 public class UserController {
 
@@ -49,6 +49,7 @@ public class UserController {
     private UserService userService;
     @Resource
     private StringRedisCacheUtils redisCacheUtils;
+
     @PostMapping("/register")
     public BaseResponse<Long> userRegister(@RequestBody UserRegisterRequest userRegisterRequest){
         if (userRegisterRequest == null) {
@@ -82,6 +83,7 @@ public class UserController {
         stringRedisTemplate.opsForValue().set(RedisConstant.USER_TOKEN_KEY+token,gson.toJson(user));
         return ResultUtils.loginSuccess(user,token);
     }
+
 
     @PostMapping("/logout")
     public BaseResponse<Integer> userLogout(HttpServletRequest request) {

@@ -24,7 +24,7 @@ import java.util.concurrent.TimeUnit;
 
 @RestController
 @RequestMapping("/tag")
-@CrossOrigin(origins = {"http://localhost:3000"})
+
 @Slf4j
 public class TagController {
     @Resource

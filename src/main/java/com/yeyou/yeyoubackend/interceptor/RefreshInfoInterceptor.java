@@ -24,7 +24,7 @@ import static com.yeyou.yeyoubackend.contant.UserConstant.USER_LOGIN_STATE;
 @Slf4j
 public class RefreshInfoInterceptor implements HandlerInterceptor {
     @Value("${spring.session.timeout}")
-    private long expireTime;
+    public long expireTime=1200;
 
     private StringRedisTemplate stringRedisTemplate;
     @Autowired
