@@ -15,6 +15,7 @@ import com.yeyou.yeyoubackend.service.UserService;
 import com.yeyou.yeyoubackend.utils.AlgorithmUtils;
 import com.yeyou.yeyoubackend.utils.RedisIdWorker;
 import com.yeyou.yeyoubackend.utils.StringRedisCacheUtils;
+import com.yeyou.yeyoubackend.utils.UserHold;
 import javafx.util.Pair;
 import jodd.util.StringUtil;
 import lombok.extern.slf4j.Slf4j;
@@ -218,11 +219,12 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>  implements U
         if(request==null){
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
-        Object curUser = request.getSession().getAttribute(USER_LOGIN_STATE);
+//        Object curUser = request.getSession().getAttribute(USER_LOGIN_STATE);
+        User curUser = UserHold.get();
         if(curUser==null){
             throw new BusinessException(ErrorCode.NOT_LOGIN);
         }
-        return (User) curUser;
+        return curUser;
     }
 
     /**
@@ -260,8 +262,9 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>  implements U
     @Override
     public boolean isAdmin(HttpServletRequest request){
         if(request==null) return false;
-        Object user = request.getSession().getAttribute(USER_LOGIN_STATE);
-        return user==null && isAdmin((User) user);
+//        Object user = request.getSession().getAttribute(USER_LOGIN_STATE);
+        User user = UserHold.get();
+        return user!=null && isAdmin(user);
     }
 
     @Override
