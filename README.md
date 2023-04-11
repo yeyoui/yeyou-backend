@@ -18,7 +18,18 @@
 使用Redis构建了一个消息队列，异步处理业务，配合Lua脚本，保障了队伍争夺业务的可靠性。
 
 ## 业务流程图
-![](./img/FrameDiagram.jpg)
+![业务流程图](./img/FrameDiagram.jpg)
+## 功能展示
+### 首页
+![首页](./img/home.png)
+### 随机用户
+![随机用户](./img/home_random.png)
+### 标签修改
+![标签修改](./img/myTags.png)
+### 队伍信息
+![队伍信息](./img/team.png)
+### 队伍修改
+![队伍修改](./img/editTeam.png)
 
 ## 主体设计
 ### 1.用户服务
