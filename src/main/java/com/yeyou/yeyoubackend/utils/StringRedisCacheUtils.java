@@ -8,6 +8,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.concurrent.BasicThreadFactory;
 import org.redisson.api.RLock;
 import org.redisson.api.RedissonClient;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
 
@@ -21,7 +22,7 @@ import java.util.function.Supplier;
 @Component
 @Slf4j
 public class StringRedisCacheUtils{
-    private final StringRedisTemplate redisTemplate;
+    private final StringRedisTemplate stringRedisTemplate;
     private final RedissonClient redissonClient;
     private final Gson gson=new Gson();
     private static final ExecutorService threadPool= new ThreadPoolExecutor(2,4,
@@ -29,8 +30,8 @@ public class StringRedisCacheUtils{
             new ArrayBlockingQueue<>(20),
             new BasicThreadFactory.Builder().namingPattern("redisChache").build());
 
-    public StringRedisCacheUtils(StringRedisTemplate redisTemplate,RedissonClient redissonClient) {
-        this.redisTemplate = redisTemplate;
+    public StringRedisCacheUtils(StringRedisTemplate stringRedisTemplate, RedissonClient redissonClient) {
+        this.stringRedisTemplate = stringRedisTemplate;
         this.redissonClient=redissonClient;
     }
 
@@ -50,7 +51,7 @@ public class StringRedisCacheUtils{
                                        long time, TimeUnit timeUnit){
         String key=keyPrefix+id;
         //1.先查询缓存是否存在
-        String json = redisTemplate.opsForValue().get(key);
+        String json = stringRedisTemplate.opsForValue().get(key);
         //2.缓存存在直接返回
         if(StringUtils.isNotBlank(json)){
             return gson.fromJson(json, type);
@@ -87,7 +88,7 @@ public class StringRedisCacheUtils{
                                   long time, TimeUnit timeUnit){
         String key=keyPrefix+id;
         //1.先查询缓存是否存在
-        String json = redisTemplate.opsForValue().get(key);
+        String json = stringRedisTemplate.opsForValue().get(key);
         //2.缓存存在直接返回
         if(StringUtils.isNotBlank(json)){
             return gson.fromJson(json, type);
@@ -143,7 +144,7 @@ public class StringRedisCacheUtils{
                                   long time, TimeUnit timeUnit){
         String key=keyPrefix+id;
         //1.先查询缓存是否存在
-        String json = redisTemplate.opsForValue().get(key);
+        String json = stringRedisTemplate.opsForValue().get(key);
         //2.缓存存在直接返回
         if(StringUtils.isNotBlank(json)){
             return gson.fromJson(json, type);
@@ -197,7 +198,7 @@ public class StringRedisCacheUtils{
         long time, TimeUnit timeUnit){
         String key=keyPrefix+id;
         //1.先查询缓存是否存在
-        String json = redisTemplate.opsForValue().get(key);
+        String json = stringRedisTemplate.opsForValue().get(key);
         //2.缓存不存在直接返回null
         if(StringUtils.isBlank(json)){
             return null;
@@ -257,7 +258,7 @@ public class StringRedisCacheUtils{
                                            long time, TimeUnit timeUnit){
         String key=keyPrefix+id;
         //1.先查询缓存是否存在
-        String json = redisTemplate.opsForValue().get(key);
+        String json = stringRedisTemplate.opsForValue().get(key);
         //2.缓存不存在直接返回null
         if(StringUtils.isBlank(json)){
             return null;
@@ -304,21 +305,21 @@ public class StringRedisCacheUtils{
 
     //设置带有过期时间的缓存
     public void set(String key, Object value, long time, TimeUnit timeUnit){
-        redisTemplate.opsForValue().set(key, gson.toJson(value),time,timeUnit);
+        stringRedisTemplate.opsForValue().set(key, gson.toJson(value),time,timeUnit);
     }
     //设置无过期时间的缓存
     public void set(String key, Object value){
-        redisTemplate.opsForValue().set(key, gson.toJson(value));
+        stringRedisTemplate.opsForValue().set(key, gson.toJson(value));
     }
     //设置逻辑过期缓存
     public void setWithLogicalExpire(String key, Object value, long time, TimeUnit timeUnit){
         RedisData redisData = new RedisData();
         redisData.setData(value);
         redisData.setExpireTime(LocalDateTime.now().plusSeconds(timeUnit.toSeconds(time)));
-        redisTemplate.opsForValue().set(key,gson.toJson(redisData));
+        stringRedisTemplate.opsForValue().set(key,gson.toJson(redisData));
     }
 
     public void removeCache(String ...key){
-        redisTemplate.delete(Arrays.asList(key));
+        stringRedisTemplate.delete(Arrays.asList(key));
     }
 }

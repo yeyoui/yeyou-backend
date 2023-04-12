@@ -52,7 +52,7 @@ public class UserVo implements Serializable {
     private Integer userStatus;
 
     /**
-     * 用户角色 0 - 普通用户 1 - 管理员
+     * 用户角色 0 - 普通用户 1 - 管理员  2 - 优质用户'
      */
     private Integer userRole;
 

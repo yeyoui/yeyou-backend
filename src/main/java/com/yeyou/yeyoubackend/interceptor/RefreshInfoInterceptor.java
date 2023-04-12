@@ -1,5 +1,6 @@
 package com.yeyou.yeyoubackend.interceptor;
 
+import cn.hutool.core.bean.BeanUtil;
 import com.baomidou.mybatisplus.core.toolkit.StringUtils;
 import com.google.gson.Gson;
 import com.yeyou.yeyoubackend.contant.RedisConstant;
@@ -8,6 +9,7 @@ import com.yeyou.yeyoubackend.utils.UserHold;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
@@ -16,6 +18,7 @@ import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import static com.yeyou.yeyoubackend.contant.UserConstant.USER_LOGIN_STATE;
@@ -24,12 +27,12 @@ import static com.yeyou.yeyoubackend.contant.UserConstant.USER_LOGIN_STATE;
 @Slf4j
 public class RefreshInfoInterceptor implements HandlerInterceptor {
     @Value("${spring.session.timeout}")
-    public long expireTime=1200;
+    public long expireTime=24;
 
-    private StringRedisTemplate stringRedisTemplate;
+    private RedisTemplate<String,Object> redisTemplate;
     @Autowired
-    public RefreshInfoInterceptor(StringRedisTemplate redisTemplate) {
-        this.stringRedisTemplate = redisTemplate;
+    public RefreshInfoInterceptor(RedisTemplate<String,Object>  redisTemplate) {
+        this.redisTemplate = redisTemplate;
     }
 
     public RefreshInfoInterceptor() {
@@ -44,15 +47,16 @@ public class RefreshInfoInterceptor implements HandlerInterceptor {
             return true;
         }
         String key= RedisConstant.USER_TOKEN_KEY+token;
-        String json = stringRedisTemplate.opsForValue().get(key);
-        if(StringUtils.isBlank(json)){
+        Map<Object, Object> entries = redisTemplate.opsForHash().entries(key);
+        //无登录信息
+        if(entries.isEmpty()){
             return true;
         }
-        Gson gson = new Gson();
-        User user = gson.fromJson(json, User.class);
+        User user = BeanUtil.fillBeanWithMap(entries, new User(), false);
         UserHold.set(user);
+        UserHold.setToken(key);
         //更新Redis中登录的过期时间
-        stringRedisTemplate.expire(key, expireTime, TimeUnit.SECONDS);
+        redisTemplate.expire(key, expireTime, TimeUnit.HOURS);
         //该层拦截器不做登录校验
         return true;
     }

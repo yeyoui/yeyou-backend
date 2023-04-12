@@ -94,6 +94,13 @@ public interface UserService extends IService<User> {
      * @return
      */
     List<User> mathUsers(long num, User loginUser);
+    /**
+     * 缓存匹配相似用户
+     * @param num
+     * @param loginUser
+     * @return
+     */
+    List<User> cacheMathUsers(long num, User loginUser);
 
     /**
      * 随机获取用户

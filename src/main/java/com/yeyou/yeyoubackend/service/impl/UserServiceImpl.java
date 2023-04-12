@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
+import com.yeyou.yeyoubackend.annotation.PriorityUser;
 import com.yeyou.yeyoubackend.common.ErrorCode;
 import com.yeyou.yeyoubackend.contant.RedisConstant;
 import com.yeyou.yeyoubackend.contant.UserConstant;
@@ -21,7 +22,6 @@ import jodd.util.StringUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.DigestUtils;
 
@@ -196,7 +196,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>  implements U
                 "ALL",
                 RedisConstant.USER_ALL_USERTAGINFO_LOCK,
                 ()-> this.query().ne("tags","[]").list(),
-                1, TimeUnit.HOURS);
+                RedisConstant.USER_ALL_USERTAGINFO_TTL, TimeUnit.HOURS);
         String json = gson.toJson(users);
         users=gson.fromJson(json,new TypeToken<List<User>>(){}.getType());
 //        List<User> users = this.query().ne("tags","[]").list();
@@ -267,8 +267,9 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>  implements U
         return user!=null && isAdmin(user);
     }
 
+
     @Override
-    public List<User> mathUsers(long num, User loginUser) {
+    public List<User> cacheMathUsers(long num, User loginUser) {
         String tagsGson = loginUser.getTags();
         Gson gson = new Gson();
         List<String> userTags = gson.fromJson(tagsGson, new TypeToken<List<String>>() {}.getType());
@@ -277,7 +278,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>  implements U
                 "ALL",
                 RedisConstant.USER_ALL_USERTAGINFO_LOCK,
                 ()-> this.query().select("id","tags").isNotNull("tags").list(),
-                1, TimeUnit.HOURS);
+                RedisConstant.USER_ALL_USERTAGINFO_TTL, TimeUnit.HOURS);
 //        List<User> userList = this.query().select("id","tags").ne("tags","[]").list();
 
         //存储用户标签的相似度 key:相似度分数（越小越接近） value: 用户id
@@ -307,6 +308,12 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>  implements U
         List<User> matchList = this.query().in("id", mathUserRankIds).last("ORDER BY FIELD (id," + idStr + ")").list();
         matchList = matchList.stream().map(this::getSafetyUser).collect(Collectors.toList());
         return matchList;
+    }
+
+    @Override
+    @PriorityUser
+    public List<User> mathUsers(long num, User loginUser) {
+        return cacheMathUsers(num, loginUser);
     }
 
     @Override

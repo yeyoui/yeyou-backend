@@ -21,7 +21,7 @@ create table user
     createTime   datetime default CURRENT_TIMESTAMP null comment '创建时间',
     updateTime   datetime default CURRENT_TIMESTAMP null on update CURRENT_TIMESTAMP,
     isDelete     tinyint  default 0 not null comment '是否删除',
-    userRole     int      default 0 not null comment '用户角色 0 - 普通用户 1 - 管理员',
+    userRole     int      default 0 not null comment '用户角色 0 - 普通用户 1 - 管理员  2 - 优质用户',
     userCode   varchar(512) null comment '用户编号',
     tags         varchar(1024) null comment '标签 json 列表'
 ) comment '用户';

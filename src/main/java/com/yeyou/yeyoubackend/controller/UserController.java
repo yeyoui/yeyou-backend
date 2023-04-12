@@ -1,5 +1,8 @@
 package com.yeyou.yeyoubackend.controller;
+import java.util.Date;
 
+import cn.hutool.core.bean.BeanUtil;
+import cn.hutool.core.bean.copier.CopyOptions;
 import cn.hutool.core.lang.UUID;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -21,6 +24,7 @@ import com.yeyou.yeyoubackend.utils.StringRedisCacheUtils;
 import com.yeyou.yeyoubackend.utils.UserHold;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.util.CollectionUtils;
 import org.springframework.web.bind.annotation.*;
@@ -28,7 +32,9 @@ import org.springframework.web.bind.annotation.*;
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
 import java.lang.reflect.Type;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -45,6 +51,8 @@ public class UserController {
 
     @Resource
     private StringRedisTemplate stringRedisTemplate;
+    @Resource
+    private RedisTemplate<String,Object> redisTemplate;
     @Resource
     private UserService userService;
     @Resource
@@ -79,9 +87,21 @@ public class UserController {
         User user = userService.userLogin(userAccount, userPassword, request);
         if(user==null) return ResultUtils.error(ErrorCode.NOT_LOGIN, "账号或密码错误");
         String token = UUID.randomUUID().toString();
-        Gson gson = new Gson();
-        stringRedisTemplate.opsForValue().set(RedisConstant.USER_TOKEN_KEY+token,gson.toJson(user));
+        //将用户信息缓存进Redis中
+        updUserCache(user, token);
         return ResultUtils.loginSuccess(user,token);
+    }
+
+    private void updUserCache(User user, String token) {
+        String key=RedisConstant.USER_TOKEN_KEY+ token;
+        Map<String, Object> loginUserInfoMap = BeanUtil.beanToMap(user, new HashMap<>(),
+                CopyOptions.create().setIgnoreNullValue(true)
+                        .setFieldValueEditor((fieldName, fieldValue) -> {
+                            if(fieldValue==null) fieldValue = "";
+                            return fieldValue.toString();
+                        }));
+        redisTemplate.opsForHash().putAll(key,loginUserInfoMap);
+        redisTemplate.expire(key, 24, TimeUnit.HOURS);
     }
 
 
@@ -142,6 +162,10 @@ public class UserController {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
         boolean b = userService.removeById(id);
+        if(b){
+            //从缓存中删除用户信息
+            redisTemplate.delete(UserHold.getToken());
+        }
         return ResultUtils.success(b);
     }
 
@@ -172,8 +196,16 @@ public class UserController {
         }
         User curUser = userService.getLoginUser(request);
         int result = userService.updateUserBySelf(user, curUser);
+        if(result==1){
+            //更新缓存
+            User user1 = userService.getById(user.getId());
+            User safetyUser = userService.getSafetyUser(user1);
+            updUserCache(safetyUser,UserHold.getToken());
+        }
+
         return ResultUtils.success(result);
     }
+
 
     /**
      * 是否为管理员
@@ -215,6 +247,9 @@ public class UserController {
         if(tagNameList==null) throw new BusinessException(ErrorCode.PARAMS_ERROR);
         User loginUser = userService.getLoginUser(request);
         Boolean success = userService.updMyTags(tagNameList, loginUser);
+        if(success){
+            redisTemplate.opsForHash().put(UserHold.getToken(),"tags",tagNameList);
+        }
         return ResultUtils.success(success);
     }
 
