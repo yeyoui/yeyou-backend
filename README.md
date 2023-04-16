@@ -21,7 +21,7 @@
 ![业务流程图](./img/FrameDiagram.jpg)
 ## 功能展示
 ### 线上地址
-[yeapi.com](yeapi.com)
+[yeapi.com](http://yeapi.top/yeyou)
 
 账号：yeyooi
 密码：12345678
