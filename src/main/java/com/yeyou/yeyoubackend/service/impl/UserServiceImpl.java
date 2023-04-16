@@ -1,5 +1,6 @@
 package com.yeyou.yeyoubackend.service.impl;
 
+import cn.hutool.core.util.RandomUtil;
 import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
@@ -21,13 +22,13 @@ import javafx.util.Pair;
 import jodd.util.StringUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.DigestUtils;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
-import java.lang.reflect.Type;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
@@ -51,6 +52,8 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>  implements U
     private StringRedisCacheUtils redisCacheUtils;
     @Resource
     private RedisIdWorker redisIdWorker;
+    @Resource
+    private RedisTemplate<String,Objects> redisTemplate;
 
     /**
      * 盐值
@@ -95,8 +98,11 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>  implements U
         //默认角色
         user.setUserRole(UserConstant.DEFAULT_ROLE);
         //设置用户编号
-        String uid = String.valueOf(redisIdWorker.nextInc("UID"));
-        user.setUserCode(uid);
+        Long uid= redisTemplate.opsForValue().increment("IdIncr");
+        String sUid;
+        if(uid==null) sUid=UUID.randomUUID().toString();
+        else sUid=uid.toString();
+        user.setUserCode(sUid);
         user.setUsername("User"+uid);
         boolean saveResult = this.save(user);
         if (!saveResult) {
@@ -168,6 +174,8 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>  implements U
     public int userLogout(HttpServletRequest request) {
         // 移除登录态
         request.getSession().removeAttribute(USER_LOGIN_STATE);
+        redisTemplate.delete(RedisConstant.USER_TOKEN_KEY + UserHold.getToken());
+
         return 1;
     }
     /**
@@ -271,6 +279,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>  implements U
     @Override
     public List<User> cacheMathUsers(long num, User loginUser) {
         String tagsGson = loginUser.getTags();
+        if (StringUtils.isBlank(tagsGson)) return null;
         Gson gson = new Gson();
         List<String> userTags = gson.fromJson(tagsGson, new TypeToken<List<String>>() {}.getType());
         //逻辑过期（一小时）
@@ -280,7 +289,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>  implements U
                 ()-> this.query().select("id","tags").isNotNull("tags").list(),
                 RedisConstant.USER_ALL_USERTAGINFO_TTL, TimeUnit.HOURS);
 //        List<User> userList = this.query().select("id","tags").ne("tags","[]").list();
-
+        if(CollectionUtils.isEmpty(userList)) return null;
         //存储用户标签的相似度 key:相似度分数（越小越接近） value: 用户id
         ArrayList<Pair<Long, Long>> userTagSimilar = new ArrayList<>(userList.size());
         String toJson = gson.toJson(userList);
@@ -344,6 +353,12 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>  implements U
         boolean result = this.updateById(user);
         if(!result) throw new BusinessException(ErrorCode.SYSTEM_ERROR);
         return true;
+    }
+
+    @Override
+    public String randomUserIcon() {
+        int ix = RandomUtil.randomInt(1, 21);
+        return "http://yeapi.top/icons/default/("+ix+").png";
     }
 }
 

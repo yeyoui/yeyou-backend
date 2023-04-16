@@ -1,7 +1,6 @@
 package com.yeyou.yeyoubackend.service.impl;
 
 import cn.hutool.core.bean.BeanUtil;
-import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.google.gson.Gson;
 import com.yeyou.yeyoubackend.common.ErrorCode;
@@ -25,6 +24,7 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.data.redis.connection.stream.*;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -32,7 +32,6 @@ import org.springframework.transaction.annotation.Transactional;
 import javax.annotation.PostConstruct;
 import javax.annotation.Resource;
 import java.time.Duration;
-import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.stream.Collectors;
@@ -53,7 +52,7 @@ public class TeamSeckillServiceImpl extends ServiceImpl<TeamSeckillMapper, TeamS
     @Resource
     private UserTeamService userTeamService;
     @Resource
-    private RedisTemplate<String,String> redisTemplate;
+    private StringRedisTemplate stringStringRedisTemplate;
     @Resource
     private RedisIdWorker redisIdWorker;
 
@@ -86,7 +85,7 @@ public class TeamSeckillServiceImpl extends ServiceImpl<TeamSeckillMapper, TeamS
             while(true){
                 //1.获取消息
                 try {
-                    List<MapRecord<String, Object, Object>> mapRecordList = redisTemplate.opsForStream().read(
+                    List<MapRecord<String, Object, Object>> mapRecordList = stringStringRedisTemplate.opsForStream().read(
                             Consumer.from(GROUP_NAME,threadName),
                             StreamReadOptions.empty().count(1).block(Duration.ofMillis(waitTime)),
                             StreamOffset.create(GROUP_KEY, ReadOffset.lastConsumed())
@@ -105,7 +104,7 @@ public class TeamSeckillServiceImpl extends ServiceImpl<TeamSeckillMapper, TeamS
                     //4.处理消息
                     syncTeamSeckillResult(teamSeckillSyncBo);
                     //5.ACK确认处理完成
-                    redisTemplate.opsForStream().acknowledge(GROUP_KEY,GROUP_NAME,record.getId());
+                    stringStringRedisTemplate.opsForStream().acknowledge(GROUP_KEY,GROUP_NAME,record.getId());
                 } catch (Exception e) {
                     e.printStackTrace();
                     log.error("线程 "+threadName+" 处理订单出现问题-->重试");
@@ -118,7 +117,7 @@ public class TeamSeckillServiceImpl extends ServiceImpl<TeamSeckillMapper, TeamS
             while(true){
                 //1.获取消息
                 try {
-                    List<MapRecord<String, Object, Object>> mapRecordList = redisTemplate.opsForStream().read(
+                    List<MapRecord<String, Object, Object>> mapRecordList = stringStringRedisTemplate.opsForStream().read(
                             Consumer.from(GROUP_NAME,threadName),
                             StreamReadOptions.empty().count(1).block(Duration.ofMillis(waitTime)),
                             StreamOffset.create(GROUP_KEY, ReadOffset.from("0"))
@@ -136,7 +135,7 @@ public class TeamSeckillServiceImpl extends ServiceImpl<TeamSeckillMapper, TeamS
                     //4.处理消息
                     syncTeamSeckillResult(teamSeckillSyncBo);
                     //5.ACK确认处理完成
-                    redisTemplate.opsForStream().acknowledge(GROUP_KEY,GROUP_NAME,record.getId());
+                    stringStringRedisTemplate.opsForStream().acknowledge(GROUP_KEY,GROUP_NAME,record.getId());
                     break;
                 } catch (Exception e) {
                     log.error("线程 "+threadName+" 重新处理订单出现问题-->重试");
@@ -171,13 +170,13 @@ public class TeamSeckillServiceImpl extends ServiceImpl<TeamSeckillMapper, TeamS
 
         //将争夺信息和队伍加入Redis缓存中
         String redisKey=TEAMSECKILL_INFO_KEY+teamId;
-        redisTemplate.opsForValue().set(redisKey,teamSeckillRequest.getJoinNum().toString());
+        stringStringRedisTemplate.opsForValue().set(redisKey,teamSeckillRequest.getJoinNum().toString());
         //设置过期时间为结束时间
-        redisTemplate.expireAt(redisKey, teamSeckillRequest.getEndTime());
+        stringStringRedisTemplate.expireAt(redisKey, teamSeckillRequest.getEndTime());
         //缓存队伍信息
         Gson gson = new Gson();
         TeamUserSeckillVo teamUserSeckillVo = packageOneTeamUserSeckillVo(teamSeckill, loginUser.getId());
-        redisTemplate.opsForHash().put(RedisConstant.TEAMSECKILL_TEAMINFO_HASH,teamId.toString(),gson.toJson(teamUserSeckillVo));
+        stringStringRedisTemplate.opsForHash().put(RedisConstant.TEAMSECKILL_TEAMINFO_HASH,teamId.toString(),gson.toJson(teamUserSeckillVo));
         return teamId;
     }
 
@@ -202,7 +201,7 @@ public class TeamSeckillServiceImpl extends ServiceImpl<TeamSeckillMapper, TeamS
         //更新后的TeamSeckill信息
         Gson gson = new Gson();
         TeamUserSeckillVo teamUserSeckillVo = packageOneTeamUserSeckillVo(teamSeckill, loginUser.getId());
-        redisTemplate.opsForHash().put(RedisConstant.TEAMSECKILL_TEAMINFO_HASH,teamId.toString(),gson.toJson(teamUserSeckillVo,TeamUserSeckillVo.class));
+        stringStringRedisTemplate.opsForHash().put(RedisConstant.TEAMSECKILL_TEAMINFO_HASH,teamId.toString(),gson.toJson(teamUserSeckillVo,TeamUserSeckillVo.class));
 
         return teamId;
     }
@@ -212,14 +211,14 @@ public class TeamSeckillServiceImpl extends ServiceImpl<TeamSeckillMapper, TeamS
         //1.获取有效争夺状态的队伍ID
         Gson gson = new Gson();
         //Redis缓存
-        Map<Object, Object> entries = redisTemplate.opsForHash().entries(RedisConstant.TEAMSECKILL_TEAMINFO_HASH);
+        Map<Object, Object> entries = stringStringRedisTemplate.opsForHash().entries(RedisConstant.TEAMSECKILL_TEAMINFO_HASH);
         List<TeamUserSeckillVo> seckillVoCollect = entries.values()
                 .stream().map((valueJson) -> gson.fromJson((String) valueJson, TeamUserSeckillVo.class))
                 .filter((team) -> {
                     boolean noExpire = team.getEndTime().after(new Date());
                     if(!noExpire){
                         //清除过期的队伍信息
-                        redisTemplate.opsForHash().delete(RedisConstant.TEAMSECKILL_TEAMINFO_HASH,team.getId());
+                        stringStringRedisTemplate.opsForHash().delete(RedisConstant.TEAMSECKILL_TEAMINFO_HASH,team.getId());
                     }
                     return noExpire;
                 }).collect(Collectors.toList());
@@ -258,7 +257,7 @@ public class TeamSeckillServiceImpl extends ServiceImpl<TeamSeckillMapper, TeamS
         //3. 提前生成订单信息(使用类似雪花算法的方式生成,时间戳+Redis自增值)
         long orderId = redisIdWorker.nextId(TEAMSECKILL_ORDERID_KEY);
         //4. 执行lua脚本，查询Redis缓存中查看用户是否下单，如果没下单就减去库存，并在redis中新增信息
-        Long result = redisTemplate.execute(
+        Long result = stringStringRedisTemplate.execute(
                 TEAMSECKILL_SCRIPT,
                 Collections.emptyList(),
                 loginUser.getId().toString(), teamId.toString(), Long.toString(orderId));
@@ -296,7 +295,7 @@ public class TeamSeckillServiceImpl extends ServiceImpl<TeamSeckillMapper, TeamS
         boolean result = teamService.update().set("status", status).eq("id", teamId).update();
         if(!result) throw new BusinessException(ErrorCode.SYSTEM_ERROR);
         //删除Redis中的缓存
-        redisTemplate.opsForHash().delete(RedisConstant.TEAMSECKILL_TEAMINFO_HASH, teamId.toString());
+        stringStringRedisTemplate.opsForHash().delete(RedisConstant.TEAMSECKILL_TEAMINFO_HASH, teamId.toString());
         return true;
     }
 

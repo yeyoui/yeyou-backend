@@ -120,4 +120,10 @@ public interface UserService extends IService<User> {
      */
     Boolean updMyTags(List<String> tags,User loginUser);
 
+    /**
+     * 随机初始头像
+     * @return
+     */
+    String randomUserIcon();
+
 }

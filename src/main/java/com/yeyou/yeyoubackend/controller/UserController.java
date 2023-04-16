@@ -1,12 +1,12 @@
 package com.yeyou.yeyoubackend.controller;
-import java.util.Date;
+import java.io.File;
+import java.io.IOException;
 
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.bean.copier.CopyOptions;
 import cn.hutool.core.lang.UUID;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.google.gson.Gson;
 
 import com.google.gson.reflect.TypeToken;
 import com.yeyou.yeyoubackend.common.BaseResponse;
@@ -18,7 +18,6 @@ import com.yeyou.yeyoubackend.model.domain.User;
 import com.yeyou.yeyoubackend.model.request.UserLoginRequest;
 import com.yeyou.yeyoubackend.model.request.UserRegisterRequest;
 import com.yeyou.yeyoubackend.model.vo.MyPage;
-import com.yeyou.yeyoubackend.model.vo.UserVo;
 import com.yeyou.yeyoubackend.service.UserService;
 import com.yeyou.yeyoubackend.utils.StringRedisCacheUtils;
 import com.yeyou.yeyoubackend.utils.UserHold;
@@ -28,10 +27,12 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.util.CollectionUtils;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
 import java.lang.reflect.Type;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -41,11 +42,9 @@ import java.util.stream.Collectors;
 import static com.yeyou.yeyoubackend.contant.RedisConstant.USER_RECOMMEND_KEY;
 import static com.yeyou.yeyoubackend.contant.RedisConstant.USER_RECOMMEND_LOCK;
 import static com.yeyou.yeyoubackend.contant.UserConstant.ADMIN_ROLE;
-import static com.yeyou.yeyoubackend.contant.UserConstant.USER_LOGIN_STATE;
 
 @RestController
 @RequestMapping("/user")
-//@CrossOrigin(origins = {"http://localhost:3000"})
 @Slf4j
 public class UserController {
 
@@ -57,6 +56,10 @@ public class UserController {
     private UserService userService;
     @Resource
     private StringRedisCacheUtils redisCacheUtils;
+
+    private static final String SERVER_PATH ="http://yeapi.top:80/icons/";
+    private static final String FILEPATH="/www/wwwroot/yeapi.com/static/icons/";
+    private static final List<String> CONTENT_TYPE = Arrays.asList("image/jpeg", "image/gif","image/png");
 
     @PostMapping("/register")
     public BaseResponse<Long> userRegister(@RequestBody UserRegisterRequest userRegisterRequest){
@@ -115,7 +118,7 @@ public class UserController {
     }
 
     @GetMapping("/current")
-    public BaseResponse<User> getCurrentUser(HttpServletRequest request) {
+    public BaseResponse<User> getCurrentUser() {
 //        Object userObj = request.getSession().getAttribute(USER_LOGIN_STATE);
 //        User currentUser = (User) userObj;
         User currentUser = UserHold.get();
@@ -130,7 +133,7 @@ public class UserController {
     }
 
     @GetMapping("/search")
-    public BaseResponse<List<User>> searchUsers(String username, HttpServletRequest request) {
+    public BaseResponse<List<User>> searchUsers(String username) {
         if (!isAdmin()) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
@@ -154,7 +157,7 @@ public class UserController {
 
 
     @PostMapping("/delete")
-    public BaseResponse<Boolean> deleteUser(@RequestBody long id, HttpServletRequest request) {
+    public BaseResponse<Boolean> deleteUser(@RequestBody long id) {
         if (!isAdmin()) {
             throw new BusinessException(ErrorCode.NO_AUTH);
         }
@@ -169,8 +172,8 @@ public class UserController {
         return ResultUtils.success(b);
     }
 
-    @GetMapping("/recommend")
-    public BaseResponse<Page<User>> recommendUsers(long pageSize,long pageNum,HttpServletRequest request){
+    @GetMapping("recommend")
+    public BaseResponse<Page<User>> recommendUsers(long pageSize,long pageNum){
         MyPage<User> queryPage = new MyPage<>(pageNum, pageSize);
         Type retType = new TypeToken<MyPage<User>>(){}.getType();
 
@@ -182,7 +185,7 @@ public class UserController {
     }
 
     @GetMapping("/randomUser")
-    public BaseResponse<List<User>> randomUser(int num,HttpServletRequest request){
+    public BaseResponse<List<User>> randomUser(int num){
         List<User> randomUser = userService.getRandomUser(num);
         randomUser = randomUser.stream().map(userService::getSafetyUser).collect(Collectors.toList());
 
@@ -190,11 +193,12 @@ public class UserController {
     }
 
     @PostMapping("/update")
-    public BaseResponse<Integer> updateUser(@RequestBody User user,HttpServletRequest request){
+    public BaseResponse<Integer> updateUser(@RequestBody User user){
         if(user==null){
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
-        User curUser = userService.getLoginUser(request);
+        User curUser = UserHold.get();
+//        User curUser = userService.getLoginUser(request);
         int result = userService.updateUserBySelf(user, curUser);
         if(result==1){
             //更新缓存
@@ -222,30 +226,32 @@ public class UserController {
     /**
      * 获取最匹配的前n个用户
      * @param num
-     * @param request
      * @return
      */
     @GetMapping("/matchUsersByTags")
-    public BaseResponse<List<User>> matchUsers(long num,HttpServletRequest request){
+    public BaseResponse<List<User>> matchUsers(long num){
         if(num<0 ||num>20){
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
-        User loginUser = userService.getLoginUser(request);
+        User loginUser = UserHold.get();
+//        User loginUser = userService.getLoginUser(request);
         return ResultUtils.success(userService.mathUsers(num, loginUser));
     }
 
     @GetMapping("/getMyTags")
-    public BaseResponse<List<String>> getMyTags(HttpServletRequest request){
-        User loginUser = userService.getLoginUser(request);
+    public BaseResponse<List<String>> getMyTags(){
+        User loginUser = UserHold.get();
+//        User loginUser = userService.getLoginUser(request);
         List<String> tags=userService.getMyTags(loginUser);
         return ResultUtils.success(tags);
     }
 
     @GetMapping("/updateMyTags")
-    public BaseResponse<Boolean> updateMyTags(@RequestParam(required = false) List<String> tagNameList, HttpServletRequest request){
+    public BaseResponse<Boolean> updateMyTags(@RequestParam(required = false) List<String> tagNameList){
         //1.校验参数信息
         if(tagNameList==null) throw new BusinessException(ErrorCode.PARAMS_ERROR);
-        User loginUser = userService.getLoginUser(request);
+        User loginUser = UserHold.get();
+//        User loginUser = userService.getLoginUser(request);
         Boolean success = userService.updMyTags(tagNameList, loginUser);
         if(success){
             redisTemplate.opsForHash().put(UserHold.getToken(),"tags",tagNameList);
@@ -253,4 +259,31 @@ public class UserController {
         return ResultUtils.success(success);
     }
 
+    @PostMapping("/uploadIcon")
+    public BaseResponse<String> uploadIcon(@RequestBody MultipartFile file){
+        String originalFilename = file.getOriginalFilename();
+        String contentType = file.getContentType();
+        if (StringUtils.isBlank(originalFilename) || !CONTENT_TYPE.contains(contentType)) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR,"文件类型错误,仅支持jpg、png、gif");
+        }
+        String suffixName = originalFilename.substring(originalFilename.lastIndexOf("."));
+        String fileName = UUID.randomUUID() + suffixName;
+        File dest=new File(FILEPATH +fileName);
+        if(!dest.getParentFile().exists()){
+            //创建文件目录
+            dest.getParentFile().mkdirs();
+        }
+        try {
+            file.transferTo(dest);
+        } catch (IOException e) {
+            log.info("保存文件失败",e);
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR);
+        }
+        String avatarUrl = SERVER_PATH + fileName;
+        //更新用户信息
+        User user = UserHold.get();
+        userService.update().set("avatarUrl",avatarUrl).eq("id",user.getId()).update();
+        redisTemplate.opsForHash().put(RedisConstant.USER_TOKEN_KEY+UserHold.getToken(),"avatarUrl",avatarUrl);
+        return ResultUtils.success(avatarUrl);
+    }
 }
