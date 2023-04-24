@@ -216,7 +216,12 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>  implements U
                 if(!tempTagsSet.contains(tag)) return false;
             }
             return true;
-        })).map(this::getSafetyUser).collect(Collectors.toList());
+        })).map(user -> {
+            //获取详细用户信息
+            User userInfo = this.getById(user.getId());
+            //脱敏
+            return this.getSafetyUser(userInfo);
+        }).collect(Collectors.toList());
     }
 
     /**
