@@ -1,9 +1,11 @@
 package com.yeyou.yeyoubackend.service;
 
 
+import cn.hutool.core.util.RandomUtil;
 import com.yeyou.yeyoubackend.model.domain.User;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.util.StopWatch;
 
 import javax.annotation.Resource;
@@ -14,9 +16,16 @@ import java.util.concurrent.*;
 public class InsertUser {
     @Resource
     private UserService userService;
+    @Resource
+    RedisTemplate<String,Object> redisTemplate;
     private ExecutorService executorService = new ThreadPoolExecutor(12, 20,
             1000, TimeUnit.SECONDS, new ArrayBlockingQueue<>(1000));
-    private static final int INSERT_NUM=10000;
+    private static final int INSERT_NUM=200;
+    @Test
+    public void incrTest(){
+        Long idIncr = redisTemplate.opsForValue().increment("IdIncr");
+        System.out.println(idIncr);
+    }
     /**
      * 批量插入用户(Mysql分批)
      */
@@ -25,19 +34,19 @@ public class InsertUser {
         StopWatch stopWatch=new StopWatch();
         stopWatch.start();
         ArrayList<User> users = new ArrayList<>(INSERT_NUM);
-        for (int i = 0; i < INSERT_NUM; i++) {
+        for (int i = 20; i < INSERT_NUM; i++) {
             User user = new User();
             user.setUsername("假夜悠"+i);
             user.setUserAccount("fakeyuyoui"+i);
-            user.setAvatarUrl("https://636f-codenav-8grj8px727565176-1256524210.tcb.qcloud.la/img/logo.png");
-            user.setGender(0);
-            user.setUserPassword("12345678");
-            user.setPhone("123");
-            user.setEmail("123@qq.com");
-            user.setTags("[]");
+            user.setAvatarUrl(userService.randomUserIcon());
+            user.setUserPassword("5f47bf575f99048f10453056cd6e1cff");
+            user.setPhone("");
+            user.setEmail(RandomUtil.randomNumbers(10)+"@qq.com");
+//            user.setTags("[]");
             user.setUserStatus(0);
             user.setUserRole(0);
-            user.setUserCode("11111111");
+            Long uid= redisTemplate.opsForValue().increment("IdIncr");
+            user.setUserCode(uid.toString());
             users.add(user);
         }
         userService.saveBatch(users,1000);
@@ -53,23 +62,23 @@ public class InsertUser {
         StopWatch stopWatch=new StopWatch();
         stopWatch.start();
         ArrayList<CompletableFuture<Void>> completableFutures = new ArrayList<>();
-        final int batchSize=3000;
+        final int batchSize=300;
         int cnt=0;
         for (int i = 0; i < INSERT_NUM/batchSize; i++) {
             ArrayList<User> users = new ArrayList<>(INSERT_NUM);
             while (true){
                 User user = new User();
-                user.setUsername("假夜悠"+cnt);
-                user.setUserAccount("fakeyuyoui"+cnt);
-                user.setAvatarUrl("https://636f-codenav-8grj8px727565176-1256524210.tcb.qcloud.la/img/logo.png");
-                user.setGender(0);
+                user.setUsername("假夜悠"+i);
+                user.setUserAccount("fakeyuyoui"+i);
+                user.setAvatarUrl(userService.randomUserIcon());
                 user.setUserPassword("12345678");
-                user.setPhone("123");
-                user.setEmail("123@qq.com");
-                user.setTags("[]");
+                user.setPhone("");
+                user.setEmail(RandomUtil.randomNumbers(10)+"@qq.com");
+//            user.setTags("[]");
                 user.setUserStatus(0);
                 user.setUserRole(0);
-                user.setUserCode("11111111");
+                Long uid= redisTemplate.opsForValue().increment("IdIncr");
+                user.setUserCode(uid.toString());
                 users.add(user);
                 if(++cnt%batchSize==0) break;
             }

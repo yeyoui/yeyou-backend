@@ -7,6 +7,7 @@ import com.yeyou.yeyoubackend.model.domain.Team;
 import com.yeyou.yeyoubackend.model.domain.User;
 import com.yeyou.yeyoubackend.model.request.TagAddRequest;
 import com.yeyou.yeyoubackend.model.vo.TeamUserVo;
+import com.yeyou.yeyoubackend.model.vo.UserVo;
 
 import javax.servlet.http.HttpServletRequest;
 import java.util.List;
@@ -17,13 +18,13 @@ import java.util.List;
 * @createDate 2023-03-13 12:41:58
 */
 public interface UserService extends IService<User> {
+
     /**
      * 用户注册
      *
      * @param userAccount   用户账户
      * @param userPassword  用户密码
      * @param checkPassword 校验密码
-     * @param planetCode 用户编号
      * @return 新用户 id
      */
     long userRegister(String userAccount, String userPassword, String checkPassword);
@@ -125,5 +126,20 @@ public interface UserService extends IService<User> {
      * @return
      */
     String randomUserIcon();
+
+    /**
+     * 获取脱敏的用户信息
+     * @param user
+     * @return
+     */
+    UserVo getUserVO(User user);
+
+    /**
+     * 获取脱敏的用户信息
+     *
+     * @param userList
+     * @return
+     */
+    List<UserVo> getUserVO(List<User> userList);
 
 }

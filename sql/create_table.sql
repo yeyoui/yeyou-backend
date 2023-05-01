@@ -12,7 +12,7 @@ create table user
     id           bigint auto_increment comment 'id'
         primary key,
     userAccount  varchar(256) null comment '账号',
-    avatarUrl    varchar(1024) null comment '用户头像',
+    avatarUrl    varchar(1024)  null comment '用户头像' default 'http://yeapi.top:80/icons/8bd669ae-65cc-4ade-9043-3c6746e32213.png',
     gender       tinyint null comment '性别',
     userPassword varchar(512)       not null comment '密码',
     phone        varchar(128) null comment '电话',
@@ -90,3 +90,43 @@ create table tag
 
 create index idx_userId
     on tag (userId);
+
+drop table if exists post;
+create table post
+(
+    id         bigint auto_increment primary key comment 'id',
+    title       varchar(256) not null comment '标题',
+    content     text not null comment '文章内容',
+    tags        varchar(1024) null comment '标签 json 列表(数组)',
+    userId   bigint not null comment '作者ID',
+    thumbNum int default 0 comment '点赞数',
+    favourNum int default 0 comment '收藏数',
+    createTime datetime default CURRENT_TIMESTAMP null comment '创建时间',
+    updateTime datetime default CURRENT_TIMESTAMP null on update CURRENT_TIMESTAMP comment '更新时间',
+    isDelete   tinyint  default 0 not null comment '是否删除',
+    index idx_userId(userId)
+)comment '帖子' collate utf8mb4_unicode_ci;
+
+drop table if exists post_thumb;
+create table post_thumb
+(
+    id         bigint auto_increment primary key  comment 'id',
+    postId   bigint not null comment '帖子id',
+    userId   bigint not null comment '用户id',
+    createTime datetime default CURRENT_TIMESTAMP null comment '创建时间',
+    updateTime datetime default CURRENT_TIMESTAMP null on update CURRENT_TIMESTAMP comment '更新时间',
+    index idx_postId(postId),
+    index idx_userId(userId)
+)comment '帖子点赞表';
+
+drop table if exists post_favour;
+create table post_favour
+(
+    id         bigint auto_increment primary key  comment 'id',
+    postId   bigint not null comment '帖子id',
+    userId   bigint not null comment '用户id',
+    createTime datetime default CURRENT_TIMESTAMP null comment '创建时间',
+    updateTime datetime default CURRENT_TIMESTAMP null on update CURRENT_TIMESTAMP comment '更新时间',
+    index idx_postId(postId),
+    index idx_userId(userId)
+)comment '帖子收藏表';

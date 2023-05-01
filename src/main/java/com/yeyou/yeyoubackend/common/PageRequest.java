@@ -1,5 +1,6 @@
 package com.yeyou.yeyoubackend.common;
 
+import com.yeyou.yeyoubackend.contant.CommonConstant;
 import lombok.Data;
 
 import java.io.Serializable;
@@ -19,4 +20,13 @@ public class PageRequest implements Serializable {
      * 当前页面
      */
     protected int pageNum=1;
+    /**
+     * 排序字段
+     */
+    private String sortField;
+
+    /**
+     * 排序顺序（默认升序）
+     */
+    private String sortOrder = CommonConstant.SORT_ORDER_ASC;
 }

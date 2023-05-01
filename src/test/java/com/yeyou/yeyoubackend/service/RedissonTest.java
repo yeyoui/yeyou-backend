@@ -12,7 +12,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-import static com.yeyou.yeyoubackend.contant.RedisConstant.LOCK_SCHEDULE_RECOMMEND_CACHE;
+import static com.yeyou.yeyoubackend.contant.RedisConstant.LOCK_SCHEDULE_MATCH_CACHE;
 
 @SpringBootTest
 @Slf4j
@@ -28,7 +28,7 @@ public class RedissonTest {
 
     @Test
     public void scheduleTest(){
-        RLock lock = redissonClient.getLock(LOCK_SCHEDULE_RECOMMEND_CACHE);
+        RLock lock = redissonClient.getLock(LOCK_SCHEDULE_MATCH_CACHE);
         try {
             if(lock.tryLock(0,-1,TimeUnit.SECONDS)){
                 //给特权用户缓存数据
@@ -47,7 +47,7 @@ public class RedissonTest {
             log.error("execute schedule error : ",e);
         }finally {
             if(lock.isHeldByCurrentThread()){
-                log.info("unlock the {}",LOCK_SCHEDULE_RECOMMEND_CACHE);
+                log.info("unlock the {}", LOCK_SCHEDULE_MATCH_CACHE);
                 lock.unlock();
             }
         }

@@ -13,6 +13,7 @@ import com.yeyou.yeyoubackend.contant.UserConstant;
 import com.yeyou.yeyoubackend.exception.BusinessException;
 import com.yeyou.yeyoubackend.model.domain.User;
 import com.yeyou.yeyoubackend.mapper.UserMapper;
+import com.yeyou.yeyoubackend.model.vo.UserVo;
 import com.yeyou.yeyoubackend.service.UserService;
 import com.yeyou.yeyoubackend.utils.AlgorithmUtils;
 import com.yeyou.yeyoubackend.utils.RedisIdWorker;
@@ -22,6 +23,7 @@ import javafx.util.Pair;
 import jodd.util.StringUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.BeanUtils;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
@@ -364,6 +366,24 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>  implements U
     public String randomUserIcon() {
         int ix = RandomUtil.randomInt(1, 21);
         return "http://yeapi.top/icons/default/("+ix+").png";
+    }
+
+    @Override
+    public UserVo getUserVO(User user) {
+        if (user == null) {
+            return null;
+        }
+        UserVo userVO = new UserVo();
+        BeanUtils.copyProperties(user, userVO);
+        return userVO;
+    }
+
+    @Override
+    public List<UserVo> getUserVO(List<User> userList) {
+        if (CollectionUtils.isEmpty(userList)) {
+            return new ArrayList<>();
+        }
+        return userList.stream().map(this::getUserVO).collect(Collectors.toList());
     }
 }
 
