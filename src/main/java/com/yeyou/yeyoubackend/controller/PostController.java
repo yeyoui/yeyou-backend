@@ -25,6 +25,7 @@ import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
 import java.util.List;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/post")
@@ -120,6 +121,24 @@ public class PostController {
         User user = UserHold.get();
         Page<PostVO> postPage = postService.listPostVoPage(postQueryRequest,user);
         return ResultUtils.success(postPage);
+    }
+
+    @PostMapping("/list/my/page/vo")
+    public BaseResponse<Page<PostVO>> listMyPostVoByPage(@RequestBody PostQueryRequest postQueryRequest){
+        ThrowUtils.throwIf(postQueryRequest==null,ErrorCode.PARAMS_ERROR);
+        // 限制爬虫
+        long current = postQueryRequest.getPageNum();
+        int pageSize = postQueryRequest.getPageSize();
+        ThrowUtils.throwIf(pageSize>20,ErrorCode.PARAMS_ERROR);
+        //获取用户信息
+        User loginUser = UserHold.get();
+        long uid = Optional.of(loginUser.getId()).orElse(-1L);
+        ThrowUtils.throwIf(uid==-1,ErrorCode.PARAMS_ERROR,"获取用户信息失败");
+        //设置要查询的用户
+        postQueryRequest.setUserId(uid);
+        //查询
+        Page<Post> postPage = postService.page(new Page<>(current, pageSize), postService.getQueryWrapper(postQueryRequest));
+        return ResultUtils.success(postService.getPostVoPage(postPage, loginUser));
     }
 
 }
