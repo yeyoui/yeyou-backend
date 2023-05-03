@@ -1,7 +1,13 @@
 package com.yeyou.yeyoubackend.mapper;
 
+import com.baomidou.mybatisplus.core.conditions.Wrapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.core.toolkit.Constants;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.yeyou.yeyoubackend.model.domain.Post;
 import com.yeyou.yeyoubackend.model.domain.PostFavour;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import org.apache.ibatis.annotations.Param;
 
 /**
 * @author lhy
@@ -11,6 +17,14 @@ import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 */
 public interface PostFavourMapper extends BaseMapper<PostFavour> {
 
+    /**
+     * 分页查询收藏帖子列表
+     * @param postPage
+     * @param queryWrapper
+     * @param favourUserId
+     * @return
+     */
+    Page<Post> listFavourPostByPage(IPage<Post> postPage, @Param(Constants.WRAPPER) Wrapper<Post> queryWrapper, long favourUserId);
 }
 
 

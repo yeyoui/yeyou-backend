@@ -16,4 +16,10 @@
         id,postId,userId,
         createTime,updateTime
     </sql>
+    <select id="listFavourPostByPage" resultType="com.yeyou.yeyoubackend.model.domain.Post">
+        select p.*
+        from post p
+                 join (select postId from post_favour where  userId = #{favourUserId}) pf
+                      on p.id = pf.postId ${ew.customSqlSegment}
+    </select>
 </mapper>
