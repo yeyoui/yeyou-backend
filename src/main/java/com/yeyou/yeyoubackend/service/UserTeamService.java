@@ -2,7 +2,7 @@ package com.yeyou.yeyoubackend.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.yeyou.yeyoubackend.model.domain.UserTeam;
-import com.yeyou.yeyoubackend.model.vo.UserVo;
+import com.yeyou.yeyoucommon.model.vo.UserVo;
 
 import java.util.List;
 

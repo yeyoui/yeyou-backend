@@ -1,24 +1,15 @@
 package com.yeyou.yeyoubackend.service;
 
 import cn.hutool.core.bean.BeanUtil;
-import cn.hutool.core.bean.copier.CopyOptions;
 import com.google.gson.Gson;
-import com.google.gson.reflect.TypeToken;
 import com.yeyou.yeyoubackend.model.domain.User;
-import com.yeyou.yeyoubackend.model.vo.UserVo;
-import com.yeyou.yeyoubackend.utils.StringRedisCacheUtils;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.BeanUtils;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.StringRedisTemplate;
 
 import javax.annotation.Resource;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 
 @SpringBootTest
 public class RedisCache {

@@ -22,8 +22,18 @@ spring:
     jedis:
       pool:
         max-wait: 60000
+  rabbitmq:
+    virtual-host: yeyou_broker
+    username: yeyoui
+    password: 109712
   main:
     allow-circular-references: true
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 20MB
+#  profiles:
+#    active: prod
 server:
   port: 8080
   servlet:
@@ -38,3 +48,11 @@ mybatis-plus:
       logic-delete-value: 1 # 逻辑已删除值(默认为 1)
       logic-not-delete-value: 0 # 逻辑未删除值(默认为 0)
   type-aliases-package: com.yeyou.usercenter.model.demain
+dubbo:
+  application:
+    name: dubbo-yeyou-backend-provider
+  protocol:
+    name: dubbo
+    port: -1
+  registry:
+    address: zookeeper://${zookeeper.address:127.0.0.1}:2181

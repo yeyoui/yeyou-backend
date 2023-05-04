@@ -2,11 +2,11 @@ package com.yeyou.yeyoubackend.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.yeyou.yeyoubackend.model.domain.Post;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.yeyou.yeyoubackend.model.domain.User;
 import com.yeyou.yeyoubackend.model.dto.post.PostQueryRequest;
-import com.yeyou.yeyoubackend.model.vo.PostVO;
+import com.yeyou.yeyoucommon.model.domain.Post;
+import com.yeyou.yeyoucommon.model.vo.PostVO;
 
 /**
 * @author lhy
@@ -68,4 +68,12 @@ public interface PostService extends IService<Post> {
      * @return
      */
     Page<PostVO> getPostVoPage(Page<Post> postPage, User user);
+
+    /**
+     * 删除帖子
+     * @param postId
+     * @param user
+     * @return
+     */
+    boolean deleteById(long postId, User user);
 }

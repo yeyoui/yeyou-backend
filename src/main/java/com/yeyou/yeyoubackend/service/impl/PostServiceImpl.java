@@ -7,27 +7,27 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.CollectionUtils;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.sun.org.apache.xpath.internal.operations.Bool;
 import com.yeyou.yeyoubackend.common.ErrorCode;
 import com.yeyou.yeyoubackend.contant.CommonConstant;
 import com.yeyou.yeyoubackend.exception.BusinessException;
 import com.yeyou.yeyoubackend.exception.ThrowUtils;
-import com.yeyou.yeyoubackend.model.domain.Post;
 import com.yeyou.yeyoubackend.model.domain.PostFavour;
 import com.yeyou.yeyoubackend.model.domain.PostThumb;
 import com.yeyou.yeyoubackend.model.domain.User;
 import com.yeyou.yeyoubackend.model.dto.post.PostQueryRequest;
-import com.yeyou.yeyoubackend.model.vo.PostVO;
-import com.yeyou.yeyoubackend.model.vo.UserVo;
+import com.yeyou.yeyoucommon.constant.MqConstants;
+import com.yeyou.yeyoucommon.model.domain.Post;
 import com.yeyou.yeyoubackend.service.PostFavourService;
 import com.yeyou.yeyoubackend.service.PostService;
 import com.yeyou.yeyoubackend.mapper.PostMapper;
 import com.yeyou.yeyoubackend.service.PostThumbService;
 import com.yeyou.yeyoubackend.service.UserService;
 import com.yeyou.yeyoubackend.utils.SqlUtils;
-import com.yeyou.yeyoubackend.utils.UserHold;
+import com.yeyou.yeyoucommon.model.vo.PostVO;
+import com.yeyou.yeyoucommon.model.vo.UserVo;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
@@ -46,6 +46,8 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
     private PostThumbService postThumbService;
     @Resource
     private PostFavourService postFavourService;
+    @Resource
+    private RabbitTemplate rabbitTemplate;
     @Override
     public void validPost(Post post, boolean add) {
         if (post == null) {
@@ -70,7 +72,10 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
         validPost(post, true);
         boolean save = this.save(post);
         ThrowUtils.throwIf(!save, ErrorCode.SYSTEM_ERROR);
-        return post.getId();
+        //同步ES
+        Long postId = post.getId();
+        rabbitTemplate.convertAndSend(MqConstants.POST_EXCHANGE,MqConstants.POST_INSERT_KEY,postId);
+        return postId;
     }
 
     @Override
@@ -86,6 +91,8 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
         //更新数据
         boolean success= this.updateById(post);
         ThrowUtils.throwIf(!success,ErrorCode.SYSTEM_ERROR);
+        //同步ES
+        rabbitTemplate.convertAndSend(MqConstants.POST_EXCHANGE,MqConstants.POST_INSERT_KEY,post.getId());
         return true;
     }
 
@@ -216,6 +223,22 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
         //4.返回
         postVOPage.setRecords(postVOList);
         return postVOPage;
+    }
+
+    @Override
+    public boolean deleteById(long postId, User user) {
+        Post oldPost = this.getById(postId);
+        ThrowUtils.throwIf(oldPost == null, ErrorCode.NOT_FOUND_ERROR);
+        //鉴权
+        if(!oldPost.getUserId().equals(user.getId()) && userService.isAdmin(user)){
+            throw new BusinessException(ErrorCode.NO_AUTH);
+        }
+        boolean result = this.removeById(postId);
+        if(result){
+            //同步ES
+            rabbitTemplate.convertAndSend(MqConstants.POST_EXCHANGE,MqConstants.POST_DELETE_KEY,postId);
+        }
+        return result;
     }
 }
 

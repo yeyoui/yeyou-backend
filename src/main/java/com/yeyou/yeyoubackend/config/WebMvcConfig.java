@@ -35,11 +35,12 @@ public class WebMvcConfig implements WebMvcConfigurer {
         //刷新Session请求
         registry.addInterceptor(new RefreshInfoInterceptor(redisTemplate)).addPathPatterns("/**").order(0);
         //检查是否登录
-        registry.addInterceptor(new LoginInterceptor())
-                .addPathPatterns("/**")
-                .excludePathPatterns("/user/register")
-                .excludePathPatterns("/user/register")
-                .excludePathPatterns("/user/login")
-                .order(1);
+//        registry.addInterceptor(new LoginInterceptor())
+//                .addPathPatterns("/**")
+//                .excludePathPatterns("/user/register")
+//                .excludePathPatterns("/user/register")
+//                .excludePathPatterns("/user/login")
+//                .excludePathPatterns("/doc.html")
+//                .order(1);
     }
 }

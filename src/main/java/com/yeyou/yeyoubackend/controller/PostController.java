@@ -1,6 +1,5 @@
 package com.yeyou.yeyoubackend.controller;
 
-import cn.hutool.core.bean.BeanUtil;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.google.gson.Gson;
 import com.yeyou.yeyoubackend.common.BaseResponse;
@@ -8,16 +7,16 @@ import com.yeyou.yeyoubackend.common.ErrorCode;
 import com.yeyou.yeyoubackend.common.ResultUtils;
 import com.yeyou.yeyoubackend.exception.BusinessException;
 import com.yeyou.yeyoubackend.exception.ThrowUtils;
-import com.yeyou.yeyoubackend.model.domain.Post;
 import com.yeyou.yeyoubackend.model.domain.User;
 import com.yeyou.yeyoubackend.model.dto.post.DeleteRequest;
 import com.yeyou.yeyoubackend.model.dto.post.PostAddRequest;
 import com.yeyou.yeyoubackend.model.dto.post.PostQueryRequest;
 import com.yeyou.yeyoubackend.model.dto.post.PostUpdateRequest;
-import com.yeyou.yeyoubackend.model.vo.PostVO;
 import com.yeyou.yeyoubackend.service.PostService;
 import com.yeyou.yeyoubackend.service.UserService;
 import com.yeyou.yeyoubackend.utils.UserHold;
+import com.yeyou.yeyoucommon.model.domain.Post;
+import com.yeyou.yeyoucommon.model.vo.PostVO;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.util.CollectionUtils;
@@ -67,13 +66,7 @@ public class PostController {
         }
         long postId = deleteRequest.getId();
         User user = UserHold.get();
-        Post oldPost = postService.getById(postId);
-        ThrowUtils.throwIf(oldPost == null, ErrorCode.NOT_FOUND_ERROR);
-        //鉴权
-        if(!oldPost.getUserId().equals(user.getId()) && userService.isAdmin(user)){
-            throw new BusinessException(ErrorCode.NO_AUTH);
-        }
-        boolean result = postService.removeById(postId);
+        boolean result = postService.deleteById(postId,user);
         return ResultUtils.success(result);
     }
 

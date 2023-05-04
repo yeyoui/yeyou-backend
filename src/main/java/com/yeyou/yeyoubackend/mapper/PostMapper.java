@@ -1,7 +1,7 @@
 package com.yeyou.yeyoubackend.mapper;
 
-import com.yeyou.yeyoubackend.model.domain.Post;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import com.yeyou.yeyoucommon.model.domain.Post;
 
 /**
 * @author lhy

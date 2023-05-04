@@ -1,5 +1,6 @@
 package com.yeyou.yeyoubackend.model.vo;
 
+import com.yeyou.yeyoucommon.model.vo.UserVo;
 import lombok.Data;
 import lombok.ToString;
 

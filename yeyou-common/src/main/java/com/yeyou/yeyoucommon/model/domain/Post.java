@@ -1,10 +1,10 @@
-package com.yeyou.yeyoubackend.model.domain;
+package com.yeyou.yeyoucommon.model.domain;
 
 import com.baomidou.mybatisplus.annotation.*;
+import lombok.Data;
 
 import java.io.Serializable;
 import java.util.Date;
-import lombok.Data;
 
 /**
  * 帖子

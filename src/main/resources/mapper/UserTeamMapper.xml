@@ -19,7 +19,7 @@
         joinTime,createTime,updateTime,
         isDelete
     </sql>
-    <select id="getUserVoListByTeamId" resultType="com.yeyou.yeyoubackend.model.vo.UserVo">
+    <select id="getUserVoListByTeamId" resultType="com.yeyou.yeyoucommon.model.vo.UserVo">
         SELECT user.id,user.username, user.userAccount, user.avatarurl, user.gender, user.phone, user.email,
                user.userStatus, user.createTime, user.updatetime, user.userRole, user.userCode
         FROM user_team ut LEFT JOIN user ON ut.userId=user.id

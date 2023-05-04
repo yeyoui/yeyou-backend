@@ -1,4 +1,4 @@
-package com.yeyou.yeyoubackend.model.vo;
+package com.yeyou.yeyoucommon.model.vo;
 
 import lombok.Data;
 

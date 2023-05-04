@@ -3,10 +3,10 @@ package com.yeyou.yeyoubackend.service;
 import com.baomidou.mybatisplus.core.conditions.Wrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.yeyou.yeyoubackend.model.domain.Post;
 import com.yeyou.yeyoubackend.model.domain.PostFavour;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.yeyou.yeyoubackend.model.domain.User;
+import com.yeyou.yeyoucommon.model.domain.Post;
 
 /**
 * @author lhy

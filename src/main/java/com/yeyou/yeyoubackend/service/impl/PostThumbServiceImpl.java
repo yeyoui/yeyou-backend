@@ -1,21 +1,16 @@
 package com.yeyou.yeyoubackend.service.impl;
 
-import com.baomidou.mybatisplus.core.conditions.Wrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
-import com.baomidou.mybatisplus.core.metadata.IPage;
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.yeyou.yeyoubackend.common.ErrorCode;
 import com.yeyou.yeyoubackend.exception.BusinessException;
 import com.yeyou.yeyoubackend.exception.ThrowUtils;
-import com.yeyou.yeyoubackend.model.domain.Post;
-import com.yeyou.yeyoubackend.model.domain.PostThumb;
 import com.yeyou.yeyoubackend.model.domain.PostThumb;
 import com.yeyou.yeyoubackend.model.domain.User;
 import com.yeyou.yeyoubackend.service.PostThumbService;
 import com.yeyou.yeyoubackend.service.PostService;
-import com.yeyou.yeyoubackend.service.PostThumbService;
 import com.yeyou.yeyoubackend.mapper.PostThumbMapper;
+import com.yeyou.yeyoucommon.model.domain.Post;
 import org.springframework.aop.framework.AopContext;
 import org.springframework.stereotype.Service;
 

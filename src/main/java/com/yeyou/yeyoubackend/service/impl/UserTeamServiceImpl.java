@@ -4,8 +4,8 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.yeyou.yeyoubackend.mapper.UserTeamMapper;
 import com.yeyou.yeyoubackend.model.domain.UserTeam;
-import com.yeyou.yeyoubackend.model.vo.UserVo;
 import com.yeyou.yeyoubackend.service.UserTeamService;
+import com.yeyou.yeyoucommon.model.vo.UserVo;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;

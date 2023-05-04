@@ -1,9 +1,8 @@
 package com.yeyou.yeyoubackend.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import com.yeyou.yeyoubackend.model.domain.User;
 import com.yeyou.yeyoubackend.model.domain.UserTeam;
-import com.yeyou.yeyoubackend.model.vo.UserVo;
+import com.yeyou.yeyoucommon.model.vo.UserVo;
 import org.apache.ibatis.annotations.Mapper;
 
 import java.util.List;

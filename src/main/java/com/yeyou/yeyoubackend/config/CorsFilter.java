@@ -18,7 +18,7 @@ import java.util.List;
 public class CorsFilter implements Filter {
 
     private List<String> ALLOW_ORIGINS= Arrays.asList(
-            "http://localhost:3000","http://47.113.148.209:3000"
+            "http://localhost:3000","http://yeapi.top:3000","http://yeapi.top:3000","http://localhost:8080"
     );
 
     @Override

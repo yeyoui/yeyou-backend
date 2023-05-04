@@ -8,12 +8,12 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.yeyou.yeyoubackend.common.ErrorCode;
 import com.yeyou.yeyoubackend.exception.BusinessException;
 import com.yeyou.yeyoubackend.exception.ThrowUtils;
-import com.yeyou.yeyoubackend.model.domain.Post;
 import com.yeyou.yeyoubackend.model.domain.PostFavour;
 import com.yeyou.yeyoubackend.model.domain.User;
 import com.yeyou.yeyoubackend.service.PostFavourService;
 import com.yeyou.yeyoubackend.mapper.PostFavourMapper;
 import com.yeyou.yeyoubackend.service.PostService;
+import com.yeyou.yeyoucommon.model.domain.Post;
 import org.springframework.aop.framework.AopContext;
 import org.springframework.stereotype.Service;
 

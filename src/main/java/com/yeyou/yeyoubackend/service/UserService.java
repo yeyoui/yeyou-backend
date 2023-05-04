@@ -1,13 +1,8 @@
 package com.yeyou.yeyoubackend.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
-import com.yeyou.yeyoubackend.common.BaseResponse;
-import com.yeyou.yeyoubackend.contant.UserConstant;
-import com.yeyou.yeyoubackend.model.domain.Team;
 import com.yeyou.yeyoubackend.model.domain.User;
-import com.yeyou.yeyoubackend.model.request.TagAddRequest;
-import com.yeyou.yeyoubackend.model.vo.TeamUserVo;
-import com.yeyou.yeyoubackend.model.vo.UserVo;
+import com.yeyou.yeyoucommon.model.vo.UserVo;
 
 import javax.servlet.http.HttpServletRequest;
 import java.util.List;

@@ -4,7 +4,7 @@
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.yeyou.yeyoubackend.mapper.PostMapper">
 
-    <resultMap id="BaseResultMap" type="com.yeyou.yeyoubackend.model.domain.Post">
+    <resultMap id="BaseResultMap" type="com.yeyou.yeyoucommon.model.domain.Post">
             <id property="id" column="id" jdbcType="BIGINT"/>
             <result property="title" column="title" jdbcType="VARCHAR"/>
             <result property="content" column="content" jdbcType="VARCHAR"/>

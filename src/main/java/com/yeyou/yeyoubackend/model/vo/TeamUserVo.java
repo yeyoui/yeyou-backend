@@ -2,6 +2,7 @@ package com.yeyou.yeyoubackend.model.vo;
 
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
+import com.yeyou.yeyoucommon.model.vo.UserVo;
 import lombok.Data;
 
 import java.io.Serializable;

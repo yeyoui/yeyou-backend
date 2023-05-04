@@ -3,7 +3,7 @@ package com.yeyou.yeyoubackend.mapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.yeyou.yeyoubackend.model.domain.Post;
+import com.yeyou.yeyoucommon.model.domain.Post;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 

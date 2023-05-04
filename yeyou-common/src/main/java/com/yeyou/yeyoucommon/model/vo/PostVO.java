@@ -1,11 +1,10 @@
-package com.yeyou.yeyoubackend.model.vo;
+package com.yeyou.yeyoucommon.model.vo;
 
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
-import com.yeyou.yeyoubackend.model.domain.Post;
-import com.yeyou.yeyoubackend.model.domain.User;
+import com.yeyou.yeyoucommon.model.domain.Post;
 import lombok.Data;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.BeanUtils;
