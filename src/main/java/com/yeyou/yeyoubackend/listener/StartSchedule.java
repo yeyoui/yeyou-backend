@@ -30,7 +30,7 @@ public class StartSchedule implements ApplicationListener<org.springframework.co
         //初始化队伍缓存
         //初始化父标签列表（过期）
         List<ParentDto> parentDtoList = tagService.listAllParent();
-        redisCacheUtils.set(RedisConstant.TAG_PARENT_LIST_KEY+"ALL",parentDtoList,1, TimeUnit.HOURS);
+        redisCacheUtils.set(RedisConstant.TAG_PARENT_LIST_KEY+"ALL",parentDtoList,10, TimeUnit.SECONDS);
         //初始化所有标签（过期）
         List<TagListDto> tagList = tagService.listAll();
         redisCacheUtils.set(RedisConstant.TAG_ALL_LIST_KEY+"ALL",tagList,1, TimeUnit.HOURS);

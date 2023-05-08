@@ -218,7 +218,7 @@ public class TeamSeckillServiceImpl extends ServiceImpl<TeamSeckillMapper, TeamS
                     boolean noExpire = team.getEndTime().after(new Date());
                     if(!noExpire){
                         //清除过期的队伍信息
-                        stringStringRedisTemplate.opsForHash().delete(RedisConstant.TEAMSECKILL_TEAMINFO_HASH,team.getId());
+                        stringStringRedisTemplate.opsForHash().delete(RedisConstant.TEAMSECKILL_TEAMINFO_HASH,team.getId().toString());
                     }
                     return noExpire;
                 }).collect(Collectors.toList());

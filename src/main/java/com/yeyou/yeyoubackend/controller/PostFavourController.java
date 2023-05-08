@@ -55,7 +55,7 @@ public class PostFavourController {
      * @param postQueryRequest
      * @return
      */
-    @PostMapping("/my/list/page")
+    @PostMapping("/list/my/page")
     public BaseResponse<Page<PostVO>> listMyFavourPostListByPage(@RequestBody PostQueryRequest postQueryRequest){
         //参数为空
         ThrowUtils.throwIf(postQueryRequest==null,ErrorCode.PARAMS_ERROR);
