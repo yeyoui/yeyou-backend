@@ -20,7 +20,7 @@
 ## 业务流程图
 ![业务流程图](./img/FrameDiagram.jpg)
 ## 功能展示
-### 线上地址
+### 线上地址（推荐使用浏览器的手机模式访问）
 [yeapi.com](http://yeapi.top/yeyou)
 
 账号：yeyooi
@@ -31,6 +31,10 @@
 ![随机用户](./img/home_random.png)
 ### 标签修改
 ![标签修改](./img/myTags.png)
+### 帖子搜索
+![帖子搜索](./img/postSearch.png)
+### 帖子查看
+![帖子查看](./img/post.png)
 ### 队伍信息
 ![队伍信息](./img/team.png)
 ### 队伍修改
