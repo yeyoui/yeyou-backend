@@ -8,7 +8,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.concurrent.BasicThreadFactory;
 import org.redisson.api.RLock;
 import org.redisson.api.RedissonClient;
-import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
 
@@ -28,7 +27,7 @@ public class StringRedisCacheUtils{
     private static final ExecutorService threadPool= new ThreadPoolExecutor(2,4,
             5,TimeUnit.SECONDS,
             new ArrayBlockingQueue<>(20),
-            new BasicThreadFactory.Builder().namingPattern("redisChache").build());
+            new BasicThreadFactory.Builder().namingPattern("redisCache").build());
 
     public StringRedisCacheUtils(StringRedisTemplate stringRedisTemplate, RedissonClient redissonClient) {
         this.stringRedisTemplate = stringRedisTemplate;
@@ -66,6 +65,7 @@ public class StringRedisCacheUtils{
         if(result==null){
             //数据库无该数据(空字符串缓存5分钟)
             this.set(key,"", RedisConstant.CACHE_NULL_TTL,TimeUnit.SECONDS);
+            return null;
         }
         //5.将数据写入缓存
         this.set(key,gson.toJson(result), time,timeUnit);
@@ -119,6 +119,7 @@ public class StringRedisCacheUtils{
         if(result==null){
             //数据库无该数据(空字符串缓存5分钟)
             this.set(key,"", RedisConstant.CACHE_NULL_TTL,TimeUnit.SECONDS);
+            return null;
         }
         //5.将数据写入缓存
         this.set(key,result, time,timeUnit);
@@ -175,6 +176,7 @@ public class StringRedisCacheUtils{
         if(result==null){
             //数据库无该数据(空字符串缓存5分钟)
             this.set(key,"", RedisConstant.CACHE_NULL_TTL,TimeUnit.SECONDS);
+            return null;
         }
         //5.将数据写入缓存
         this.set(key,result, time,timeUnit);
@@ -232,6 +234,7 @@ public class StringRedisCacheUtils{
                 if(result==null){
                     //数据库无该数据(空字符串缓存5分钟)
                     this.set(key,"", RedisConstant.CACHE_NULL_TTL,TimeUnit.MINUTES);
+                    return;
                 }
                 //5.将数据写入缓存
                 this.setWithLogicalExpire(key,result,time,timeUnit);
@@ -318,7 +321,7 @@ public class StringRedisCacheUtils{
         redisData.setExpireTime(LocalDateTime.now().plusSeconds(timeUnit.toSeconds(time)));
         stringRedisTemplate.opsForValue().set(key,gson.toJson(redisData));
     }
-
+    //删除缓存
     public void removeCache(String ...key){
         stringRedisTemplate.delete(Arrays.asList(key));
     }
