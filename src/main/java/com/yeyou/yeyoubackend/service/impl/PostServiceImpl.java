@@ -1,6 +1,7 @@
 package com.yeyou.yeyoubackend.service.impl;
 
 import java.util.*;
+import java.util.concurrent.*;
 import java.util.stream.Collectors;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
@@ -48,6 +49,9 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
     private PostFavourService postFavourService;
     @Resource
     private RabbitTemplate rabbitTemplate;
+
+    private static final ExecutorService paramPoolServer=new ThreadPoolExecutor(2,2,
+            30, TimeUnit.SECONDS,new ArrayBlockingQueue<>(1000));
     @Override
     public void validPost(Post post, boolean add) {
         if (post == null) {
@@ -194,18 +198,45 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
         if(loginUserId!=-1){
             //postID集合
             Set<Long> postIdSet = postList.stream().map(Post::getId).collect(Collectors.toSet());
+
+//            //串行执行
+//            //获取点赞信息
+//            QueryWrapper<PostThumb> postThumbQueryWrapper = new QueryWrapper<>();
+//            postThumbQueryWrapper.in("postId", postIdSet);
+//            postThumbQueryWrapper.eq("userId", loginUserId);
+//            List<PostThumb> postThumbList = postThumbService.list(postThumbQueryWrapper);
+//            postThumbList.forEach((postThumb -> postIdHasThumbMap.put(postThumb.getPostId(), true)));
+//            //获取收藏信息
+//            QueryWrapper<PostFavour> postFavourQueryWrapper = new QueryWrapper<>();
+//            postFavourQueryWrapper.in("postId", postIdSet);
+//            postFavourQueryWrapper.eq("userId", user.getId());
+//            List<PostFavour> postFavourList = postFavourService.list(postFavourQueryWrapper);
+//            postFavourList.forEach((postFavour -> postIdHasFavourMap.put(postFavour.getPostId(), true)));
+
+//            //并行执行
             //获取点赞信息
-            QueryWrapper<PostThumb> postThumbQueryWrapper = new QueryWrapper<>();
-            postThumbQueryWrapper.in("postId", postIdSet);
-            postThumbQueryWrapper.eq("userId", loginUserId);
-            List<PostThumb> postThumbList = postThumbService.list(postThumbQueryWrapper);
-            postThumbList.forEach((postThumb -> postIdHasThumbMap.put(postThumb.getPostId(),true)));
+            CompletableFuture<Void> getThumbFuture = CompletableFuture.runAsync(() -> {
+                QueryWrapper<PostThumb> postThumbQueryWrapper = new QueryWrapper<>();
+                postThumbQueryWrapper.in("postId", postIdSet);
+                postThumbQueryWrapper.eq("userId", loginUserId);
+                List<PostThumb> postThumbList = postThumbService.list(postThumbQueryWrapper);
+                postThumbList.forEach((postThumb -> postIdHasThumbMap.put(postThumb.getPostId(), true)));
+            },paramPoolServer);
             //获取收藏信息
-            QueryWrapper<PostFavour> postFavourQueryWrapper = new QueryWrapper<>();
-            postFavourQueryWrapper.in("postId", postIdSet);
-            postFavourQueryWrapper.eq("userId", user.getId());
-            List<PostFavour> postFavourList = postFavourService.list(postFavourQueryWrapper);
-            postFavourList.forEach((postFavour -> postIdHasFavourMap.put(postFavour.getPostId(),true)));
+            CompletableFuture<Void> getFavourFuture = CompletableFuture.runAsync(() -> {
+                QueryWrapper<PostFavour> postFavourQueryWrapper = new QueryWrapper<>();
+                postFavourQueryWrapper.in("postId", postIdSet);
+                postFavourQueryWrapper.eq("userId", user.getId());
+                List<PostFavour> postFavourList = postFavourService.list(postFavourQueryWrapper);
+                postFavourList.forEach((postFavour -> postIdHasFavourMap.put(postFavour.getPostId(), true)));
+            },paramPoolServer);
+
+            try {
+                CompletableFuture.allOf(getThumbFuture,getFavourFuture).get();
+            } catch (InterruptedException | ExecutionException e) {
+                throw new RuntimeException(e);
+            }
+
         }
         //3.填充信息
         List<PostVO> postVOList = postList.stream().map(post -> {

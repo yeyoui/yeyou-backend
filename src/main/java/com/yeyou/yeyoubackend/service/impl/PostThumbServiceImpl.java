@@ -13,6 +13,7 @@ import com.yeyou.yeyoubackend.mapper.PostThumbMapper;
 import com.yeyou.yeyoucommon.model.domain.Post;
 import org.springframework.aop.framework.AopContext;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.Resource;
 
@@ -28,6 +29,7 @@ public class PostThumbServiceImpl extends ServiceImpl<PostThumbMapper, PostThumb
     private PostService postService;
 
     @Override
+    @Transactional
     public int doPostThumb(long postId, User user) {
         //查找帖子是否存在
         Post post = postService.getById(postId);
@@ -44,6 +46,7 @@ public class PostThumbServiceImpl extends ServiceImpl<PostThumbMapper, PostThumb
 
 
     @Override
+    @Transactional
     public int doPostThumbInner(long postId, long uid) {
         //1.查找点赞记录信息
         PostThumb postThumb = new PostThumb();

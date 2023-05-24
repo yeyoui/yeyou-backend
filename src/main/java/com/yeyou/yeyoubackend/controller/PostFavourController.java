@@ -56,7 +56,7 @@ public class PostFavourController {
      * @return
      */
     @PostMapping("/list/my/page")
-    public BaseResponse<Page<PostVO>> listMyFavourPostListByPage(@RequestBody PostQueryRequest postQueryRequest){
+    public BaseResponse<Page<PostVO>> listMyPostListByPage(@RequestBody PostQueryRequest postQueryRequest){
         //参数为空
         ThrowUtils.throwIf(postQueryRequest==null,ErrorCode.PARAMS_ERROR);
         //获取登录用户
