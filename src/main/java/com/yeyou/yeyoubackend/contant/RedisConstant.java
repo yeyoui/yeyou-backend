@@ -33,5 +33,11 @@ public interface RedisConstant {
     String USER_TOKEN_KEY = "user_token_key:";
     long CACHE_NULL_TTL=5;
 
+    String POST_THUMB_KEY="post:thumb:";
+    String POST_THUMB_LOCK="lockPost:thumb:";
+    String POST_FAVOR_KEY="post:favour:";
+    String POST_FAVOR_LOCK="lockPost:favour:";
+
+    long CACHE_FIVE_TTL=5;
 
 }

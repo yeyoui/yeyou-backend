@@ -3,12 +3,16 @@ package com.yeyou.yeyoubackend.job;
 import cn.hutool.core.util.RandomUtil;
 import com.yeyou.yeyoubackend.contant.RedisConstant;
 import com.yeyou.yeyoubackend.model.domain.User;
+import com.yeyou.yeyoubackend.service.PostService;
 import com.yeyou.yeyoubackend.service.UserService;
 import com.yeyou.yeyoubackend.utils.StringRedisCacheUtils;
+import com.yeyou.yeyoucommon.model.domain.Post;
 import lombok.extern.slf4j.Slf4j;
 import org.redisson.api.RLock;
 import org.redisson.api.RedissonClient;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -24,11 +28,13 @@ import static com.yeyou.yeyoubackend.contant.RedisConstant.LOCK_SCHEDULE_MATCH_C
 @Slf4j
 public class PreCacheJob {
     @Resource
-    private RedisTemplate<String,Object> redisTemplate;
+    private StringRedisTemplate sRedisTemplate;
     @Resource
     private StringRedisCacheUtils stringRedisCacheUtils;
     @Resource
     private UserService userService;
+    @Resource
+    private PostService postService;
     @Resource
     private RedissonClient redissonClient;
 
@@ -60,5 +66,31 @@ public class PreCacheJob {
                 lock.unlock();
             }
         }
+    }
+    //一小时同步一次帖子缓存
+    @Scheduled(cron = "0 0 * * * *")
+    public void syncPostInfo(){
+        List<Post> posts = postService.query().select("id","thumbNum","favourNum").list();
+        posts.forEach(post -> {
+            ValueOperations<String, String> ops = sRedisTemplate.opsForValue();
+            Long postId = post.getId();
+            boolean syncSucc;
+            //同步点赞数
+            String cacheThumbNum = ops.get(RedisConstant.POST_THUMB_KEY + postId);
+            if(cacheThumbNum!=null && !cacheThumbNum.equals(post.getThumbNum().toString())){
+                syncSucc=postService.update().set("thumbNum",Long.parseLong(cacheThumbNum)).eq("id", postId).update();
+                if(!syncSucc){
+                    log.error("帖子:{} 点赞数同步失败！",postId);
+                }
+            }
+            //同步收藏数
+            String cacheFavourNum = ops.get(RedisConstant.POST_FAVOR_KEY + postId);
+            if(cacheFavourNum!=null && !cacheFavourNum.equals(post.getFavourNum().toString())){
+                syncSucc = postService.update().set("favourNum", Long.parseLong(cacheFavourNum)).eq("id", postId).update();
+                if(!syncSucc){
+                    log.error("帖子:{} 收藏数同步失败！",postId);
+                }
+            }
+        });
     }
 }

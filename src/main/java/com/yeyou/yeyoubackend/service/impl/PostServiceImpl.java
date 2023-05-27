@@ -26,6 +26,7 @@ import com.yeyou.yeyoubackend.service.UserService;
 import com.yeyou.yeyoubackend.utils.SqlUtils;
 import com.yeyou.yeyoucommon.model.vo.PostVO;
 import com.yeyou.yeyoucommon.model.vo.UserVo;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
@@ -39,6 +40,7 @@ import javax.annotation.Resource;
  * @createDate 2023-04-27 11:46:48
  */
 @Service
+@Slf4j
 public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements PostService {
 
     @Resource
@@ -270,6 +272,25 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
             rabbitTemplate.convertAndSend(MqConstants.POST_EXCHANGE,MqConstants.POST_DELETE_KEY,postId);
         }
         return result;
+    }
+    @Override
+    public int getPostThumbNum(long postId){
+        Post post = this.query().select("thumbNum").eq("id", postId).one();
+        if (post == null || post.getThumbNum() == null) {
+            log.warn("post:{} is null!!!", postId);
+            return 0;
+        }
+        return post.getThumbNum();
+    }
+
+    @Override
+    public int getPostFavourNum(long postId){
+        Post post = this.query().select("favourNum").eq("id", postId).one();
+        if (post == null || post.getThumbNum() == null) {
+            log.warn("post:{} is null!!!", postId);
+            return 0;
+        }
+        return post.getFavourNum();
     }
 }
 

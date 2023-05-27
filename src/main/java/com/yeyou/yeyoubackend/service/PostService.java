@@ -76,4 +76,20 @@ public interface PostService extends IService<Post> {
      * @return
      */
     boolean deleteById(long postId, User user);
+
+    /**
+     * 根据ID搜索帖子点赞数
+     *
+     * @param postId
+     * @return
+     */
+    public int getPostThumbNum(long postId);
+
+    /**
+     * 根据ID搜索帖子收藏数
+     *
+     * @param postId
+     * @return
+     */
+    int getPostFavourNum(long postId);
 }
